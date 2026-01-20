@@ -103,7 +103,8 @@ export default function Home() {
       const { token, appId } = tokenData
 
       // 设置事件监听
-      client.on('user-published', async (user: { uid: number; audioTrack?: { play: () => void } }, mediaType: string) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      client.on('user-published', async (user: any, mediaType: any) => {
         console.log('User published:', user.uid, mediaType)
         await client.subscribe(user, mediaType)
         if (mediaType === 'audio' && user.audioTrack) {
@@ -112,7 +113,8 @@ export default function Home() {
         }
       })
 
-      client.on('user-unpublished', (user: { uid: number }, mediaType: string) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      client.on('user-unpublished', (user: any, mediaType: string) => {
         console.log('User unpublished:', user.uid, mediaType)
         if (mediaType === 'audio') {
           setIsSpeaking(false)
