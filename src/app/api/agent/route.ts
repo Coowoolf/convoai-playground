@@ -17,30 +17,20 @@ function getAgoraCredentials() {
     }
 }
 
-// 只使用 ElevenLabs TTS (用户有 API Key)
+// ElevenLabs TTS 配置
 function getElevenLabsTTSConfig() {
     const apiKey = (process.env.ELEVENLABS_API_KEY || '').trim()
     log('ELEVENLABS_KEY_CHECK', { keyLen: apiKey.length, keyStart: apiKey.slice(0, 6) })
 
     return {
-        vendor: 'elevenlabs',
-        params: {
-            base_url: 'wss://api.elevenlabs.io/v1',
-            key: apiKey,
-            model_id: 'eleven_flash_v2_5',
-            voice_id: '21m00Tcm4TlvDq8ikWAM', // Rachel - multilingual
-            sample_rate: 24000,
-            stability: 0.5,
-            similarity_boost: 0.75,
-        },
+        base_url: 'wss://api.elevenlabs.io/v1',
+        key: apiKey,
+        model_id: 'eleven_flash_v2_5',
+        voice_id: '21m00Tcm4TlvDq8ikWAM', // Rachel - multilingual
+        sample_rate: 24000,
+        stability: 0.5,
+        similarity_boost: 0.75,
     }
-}
-
-// 语言配置 - ASR 使用 Microsoft (Agora 内置)
-const LANGUAGE_CONFIGS: Record<string, { asrLanguage: string; asrVendor: string }> = {
-    'zh-CN': { asrLanguage: 'zh-CN', asrVendor: 'microsoft' },
-    'en-US': { asrLanguage: 'en-US', asrVendor: 'microsoft' },
-    'ja-JP': { asrLanguage: 'ja-JP', asrVendor: 'microsoft' },
 }
 
 export async function POST(request: NextRequest) {
@@ -72,12 +62,9 @@ export async function POST(request: NextRequest) {
         const { appId, customerId, customerSecret } = getAgoraCredentials()
         log('CREDENTIALS', { appIdLen: appId.length, customerIdLen: customerId.length, customerSecretLen: customerSecret.length })
 
-        // 获取语言配置
-        const langConfig = LANGUAGE_CONFIGS[language] || LANGUAGE_CONFIGS['zh-CN']
-
         // 获取 ElevenLabs TTS 配置
-        const ttsConfig = getElevenLabsTTSConfig()
-        log('TTS_CONFIG', ttsConfig)
+        const ttsParams = getElevenLabsTTSConfig()
+        log('TTS_CONFIG', ttsParams)
 
         // 生成 Basic Auth
         const credentials = Buffer.from(`${customerId}:${customerSecret}`).toString('base64')
@@ -90,7 +77,7 @@ export async function POST(request: NextRequest) {
 
         log('LLM_CONFIG', { urlLen: finalLlmUrl.length, keyLen: finalLlmKey.length, model: finalLlmModel })
 
-        // 构建请求体
+        // 构建请求体 - 正确的 JSON 结构：使用 tts.vendor + tts.params，而非 tts.provider.vendor
         const requestBody = {
             name: `convoai-${Date.now()}`,
             properties: {
@@ -104,15 +91,15 @@ export async function POST(request: NextRequest) {
                     enable_aivad: true,
                     enable_bhvs: true,
                 },
+                // ASR - 直接使用 vendor + params，不是 provider.vendor
                 asr: {
-                    language: langConfig.asrLanguage,
-                    provider: {
-                        vendor: langConfig.asrVendor,
-                        params: {
-                            sample_rate: 16000,
-                        },
+                    language: language === 'en-US' ? 'en-US' : 'zh-CN',
+                    vendor: 'microsoft',
+                    params: {
+                        sample_rate: 16000,
                     },
                 },
+                // LLM
                 llm: {
                     url: finalLlmUrl,
                     api_key: finalLlmKey,
@@ -128,8 +115,10 @@ export async function POST(request: NextRequest) {
                         max_tokens: Number(maxTokens),
                     },
                 },
+                // TTS - 直接使用 vendor + params，不是 provider.vendor
                 tts: {
-                    provider: ttsConfig,
+                    vendor: 'elevenlabs',
+                    params: ttsParams,
                 },
             },
         }
