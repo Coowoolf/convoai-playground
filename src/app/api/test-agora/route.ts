@@ -1,42 +1,23 @@
 import { NextResponse } from 'next/server'
 
-// TTS 配置映射
-const TTS_CONFIGS: Record<string, { vendor: string; defaultParams: Record<string, unknown> }> = {
-    minimax: {
-        vendor: 'minimax',
-        defaultParams: {
-            model: 'speech-01',
-            voice_id: 'female-tianmei',
-            sample_rate: 16000,
-            group_id: process.env.MINIMAX_GROUP_ID || '',
-        },
-    },
-}
-
-const LANGUAGE_CONFIGS: Record<string, { asrLanguage: string; asrVendor: string }> = {
-    'zh-CN': { asrLanguage: 'zh-CN', asrVendor: 'microsoft' },
-}
-
-// 完整测试端点：模拟真实 Agent 启动
+// 完整测试端点：使用 Microsoft TTS
 export async function GET() {
     const appId = process.env.AGORA_APP_ID || ''
     const customerId = process.env.AGORA_CUSTOMER_ID || ''
     const customerSecret = process.env.AGORA_CUSTOMER_SECRET || ''
     const llmUrl = process.env.LLM_URL || ''
     const llmApiKey = process.env.LLM_API_KEY || ''
-    const llmModel = process.env.LLM_MODEL || 'qwen-turbo'
-    const minimaxApiKey = process.env.MINIMAX_API_KEY || ''
-    const minimaxGroupId = process.env.MINIMAX_GROUP_ID || ''
+    const llmModel = (process.env.LLM_MODEL || 'qwen-turbo').trim()
 
     const credentials = Buffer.from(`${customerId}:${customerSecret}`).toString('base64')
     const authHeader = `Basic ${credentials}`
     const apiUrl = `https://api.agora.io/api/conversational-ai-agent/v2/projects/${appId}/join`
 
-    // 构建完整请求体
+    // 构建完整请求体 - 使用 Microsoft TTS
     const requestBody = {
-        name: `test-full-${Date.now()}`,
+        name: `test-ms-${Date.now()}`,
         properties: {
-            channel: `test-ch-full-${Date.now()}`,
+            channel: `test-ch-ms-${Date.now()}`,
             agent_rtc_uid: '12345',
             remote_rtc_uids: ['67890'],
             enable_string_uid: false,
@@ -71,13 +52,10 @@ export async function GET() {
             },
             tts: {
                 provider: {
-                    vendor: 'minimax',
+                    vendor: 'microsoft',
                     params: {
-                        model: 'speech-01',
-                        voice_id: 'female-tianmei',
+                        voice_name: 'zh-CN-XiaoxiaoNeural',
                         sample_rate: 16000,
-                        group_id: minimaxGroupId,
-                        api_key: minimaxApiKey,
                     },
                 },
             },
@@ -107,19 +85,12 @@ export async function GET() {
 
         return NextResponse.json({
             status: 'test_complete',
+            tts_vendor: 'microsoft',
             envCheck: {
                 AGORA_APP_ID: mask(appId),
-                AGORA_CUSTOMER_ID: mask(customerId),
-                AGORA_CUSTOMER_SECRET: mask(customerSecret),
                 LLM_URL: mask(llmUrl),
                 LLM_API_KEY: mask(llmApiKey),
                 LLM_MODEL: llmModel,
-                MINIMAX_API_KEY: mask(minimaxApiKey),
-                MINIMAX_GROUP_ID: mask(minimaxGroupId),
-            },
-            request: {
-                url: apiUrl,
-                payloadPreview: JSON.stringify(requestBody).slice(0, 200) + '...',
             },
             response: {
                 status: response.status,

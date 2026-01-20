@@ -9,8 +9,17 @@ function getAgoraCredentials() {
     }
 }
 
-// TTS 配置映射
+// TTS 配置映射 - Microsoft TTS 是 Agora 内置支持的，无需额外 API Key
 const TTS_CONFIGS: Record<string, { vendor: string; defaultParams: Record<string, unknown> }> = {
+    // Microsoft Azure TTS - 内置支持，推荐使用
+    microsoft: {
+        vendor: 'microsoft',
+        defaultParams: {
+            voice_name: 'zh-CN-XiaoxiaoNeural',
+            sample_rate: 16000,
+        },
+    },
+    // 以下需要额外 API Key 配置
     minimax: {
         vendor: 'minimax',
         defaultParams: {
@@ -23,7 +32,7 @@ const TTS_CONFIGS: Record<string, { vendor: string; defaultParams: Record<string
     elevenlabs: {
         vendor: 'elevenlabs',
         defaultParams: {
-            voice_id: '21m00Tcm4TlvDq8ikWAM', // Rachel
+            voice_id: '21m00Tcm4TlvDq8ikWAM',
             model_id: 'eleven_multilingual_v2',
             sample_rate: 16000,
         },
