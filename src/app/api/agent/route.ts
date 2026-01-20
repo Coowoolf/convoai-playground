@@ -8,7 +8,7 @@ function log(type: string, data: unknown) {
     console.log(`[${type}]`, JSON.stringify(data, null, 2))
 }
 
-// 环境变量在函数内部读取以确保 Next.js 运行时已加载
+// 环境变量在函数内部读取
 function getAgoraCredentials() {
     return {
         appId: process.env.AGORA_APP_ID || '',
@@ -17,36 +17,26 @@ function getAgoraCredentials() {
     }
 }
 
-// TTS 配置映射 - 仅使用 Agora 官方支持的 vendors
-const getTTSConfig = (vendor: string, language: string) => {
-    switch (vendor) {
-        case 'elevenlabs':
-            return {
-                vendor: 'elevenlabs',
-                params: {
-                    base_url: 'wss://api.elevenlabs.io/v1',
-                    key: (process.env.ELEVENLABS_API_KEY || '').trim(),
-                    model_id: 'eleven_flash_v2_5',
-                    voice_id: '21m00Tcm4TlvDq8ikWAM',
-                    sample_rate: 24000,
-                    stability: 0.5,
-                    similarity_boost: 0.75,
-                },
-            }
-        case 'microsoft':
-        default:
-            const voiceName = language === 'en-US' ? 'en-US-JennyNeural' : 'zh-CN-XiaoxiaoNeural'
-            return {
-                vendor: 'microsoft',
-                params: {
-                    voice_name: voiceName,
-                    sample_rate: 16000,
-                },
-            }
+// 只使用 ElevenLabs TTS (用户有 API Key)
+function getElevenLabsTTSConfig() {
+    const apiKey = (process.env.ELEVENLABS_API_KEY || '').trim()
+    log('ELEVENLABS_KEY_CHECK', { keyLen: apiKey.length, keyStart: apiKey.slice(0, 6) })
+
+    return {
+        vendor: 'elevenlabs',
+        params: {
+            base_url: 'wss://api.elevenlabs.io/v1',
+            key: apiKey,
+            model_id: 'eleven_flash_v2_5',
+            voice_id: '21m00Tcm4TlvDq8ikWAM', // Rachel - multilingual
+            sample_rate: 24000,
+            stability: 0.5,
+            similarity_boost: 0.75,
+        },
     }
 }
 
-// 语言配置映射
+// 语言配置 - ASR 使用 Microsoft (Agora 内置)
 const LANGUAGE_CONFIGS: Record<string, { asrLanguage: string; asrVendor: string }> = {
     'zh-CN': { asrLanguage: 'zh-CN', asrVendor: 'microsoft' },
     'en-US': { asrLanguage: 'en-US', asrVendor: 'microsoft' },
@@ -64,7 +54,6 @@ export async function POST(request: NextRequest) {
             userUid,
             userToken,
             language = 'zh-CN',
-            ttsVendor = 'microsoft',  // 默认使用 Microsoft (已验证可用)
             systemPrompt,
             temperature = 0.7,
             maxTokens = 500,
@@ -86,13 +75,20 @@ export async function POST(request: NextRequest) {
         // 获取语言配置
         const langConfig = LANGUAGE_CONFIGS[language] || LANGUAGE_CONFIGS['zh-CN']
 
-        // 获取 TTS 配置
-        const ttsConfig = getTTSConfig(ttsVendor, language)
-        log('TTS_CONFIG', { vendor: ttsVendor, config: ttsConfig })
+        // 获取 ElevenLabs TTS 配置
+        const ttsConfig = getElevenLabsTTSConfig()
+        log('TTS_CONFIG', ttsConfig)
 
         // 生成 Basic Auth
         const credentials = Buffer.from(`${customerId}:${customerSecret}`).toString('base64')
         const AGORA_CONVO_AI_API = `https://api.agora.io/api/conversational-ai-agent/v2/projects/${appId}/join`
+
+        // LLM 配置
+        const finalLlmUrl = (llmUrl || process.env.LLM_URL || '').trim()
+        const finalLlmKey = (llmApiKey || process.env.LLM_API_KEY || '').trim()
+        const finalLlmModel = (llmModel || process.env.LLM_MODEL || 'qwen-turbo').trim()
+
+        log('LLM_CONFIG', { urlLen: finalLlmUrl.length, keyLen: finalLlmKey.length, model: finalLlmModel })
 
         // 构建请求体
         const requestBody = {
@@ -118,9 +114,9 @@ export async function POST(request: NextRequest) {
                     },
                 },
                 llm: {
-                    url: (llmUrl || process.env.LLM_URL || 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions').trim(),
-                    api_key: (llmApiKey || process.env.LLM_API_KEY || '').trim(),
-                    model: (llmModel || process.env.LLM_MODEL || 'qwen-turbo').trim(),
+                    url: finalLlmUrl,
+                    api_key: finalLlmKey,
+                    model: finalLlmModel,
                     system_messages: [
                         {
                             role: 'system',
@@ -138,7 +134,7 @@ export async function POST(request: NextRequest) {
             },
         }
 
-        log('AGORA_REQUEST', { url: AGORA_CONVO_AI_API, body: requestBody })
+        log('AGORA_REQUEST', { url: AGORA_CONVO_AI_API, bodyPreview: JSON.stringify(requestBody).slice(0, 500) })
 
         const response = await fetch(AGORA_CONVO_AI_API, {
             method: 'POST',
@@ -193,7 +189,6 @@ export async function DELETE(request: NextRequest) {
         const credentials = Buffer.from(`${customerId}:${customerSecret}`).toString('base64')
 
         const stopUrl = `https://api.agora.io/api/conversational-ai-agent/v2/projects/${appId}/agents/${agentId}/leave`
-        log('DELETE_URL', stopUrl)
 
         const response = await fetch(stopUrl, {
             method: 'POST',
@@ -216,7 +211,7 @@ export async function DELETE(request: NextRequest) {
     }
 }
 
-// 获取日志端点
+// 获取日志
 export async function GET() {
     return NextResponse.json({ logs, count: logs.length })
 }
