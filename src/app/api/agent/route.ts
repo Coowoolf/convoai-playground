@@ -91,10 +91,10 @@ export async function POST(request: NextRequest) {
                     enable_aivad: true,
                     enable_bhvs: true,
                 },
-                // ASR - 直接使用 vendor + params，不是 provider.vendor
+                // ASR - 使用 ARES（无需 API Key）
                 asr: {
                     language: language === 'en-US' ? 'en-US' : 'zh-CN',
-                    vendor: 'microsoft',
+                    vendor: 'ares',
                     params: {
                         sample_rate: 16000,
                     },
