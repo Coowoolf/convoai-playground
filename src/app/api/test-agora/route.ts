@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 
-// 测试端点：使用 ElevenLabs TTS
+// 测试端点：使用正确的 TTS JSON 结构
 export async function GET() {
     const appId = process.env.AGORA_APP_ID || ''
     const customerId = process.env.AGORA_CUSTOMER_ID || ''
@@ -14,13 +14,13 @@ export async function GET() {
     const authHeader = `Basic ${credentials}`
     const apiUrl = `https://api.agora.io/api/conversational-ai-agent/v2/projects/${appId}/join`
 
-    // 使用 ElevenLabs TTS
+    // 正确的 TTS 结构：直接 tts.vendor + tts.params，而非 tts.provider.vendor
     const requestBody = {
         name: `test-11labs-${Date.now()}`,
         properties: {
             channel: `test-ch-11labs-${Date.now()}`,
             agent_rtc_uid: '12345',
-            remote_rtc_uids: ['67890'],  // 必须有值
+            remote_rtc_uids: ['67890'],
             enable_string_uid: false,
             idle_timeout: 120,
             advanced_features: {
@@ -29,11 +29,9 @@ export async function GET() {
             },
             asr: {
                 language: 'zh-CN',
-                provider: {
-                    vendor: 'microsoft',  // ASR 使用 Microsoft (Agora 内置)
-                    params: {
-                        sample_rate: 16000,
-                    },
+                vendor: 'microsoft',  // 直接使用 vendor，不是 provider.vendor
+                params: {
+                    sample_rate: 16000,
                 },
             },
             llm: {
@@ -52,17 +50,15 @@ export async function GET() {
                 },
             },
             tts: {
-                provider: {
-                    vendor: 'elevenlabs',
-                    params: {
-                        base_url: 'wss://api.elevenlabs.io/v1',
-                        key: elevenLabsKey,
-                        model_id: 'eleven_flash_v2_5',
-                        voice_id: '21m00Tcm4TlvDq8ikWAM',
-                        sample_rate: 24000,
-                        stability: 0.5,
-                        similarity_boost: 0.75,
-                    },
+                vendor: 'elevenlabs',  // 直接使用 vendor，不是 provider.vendor
+                params: {
+                    base_url: 'wss://api.elevenlabs.io/v1',
+                    key: elevenLabsKey,
+                    model_id: 'eleven_flash_v2_5',
+                    voice_id: '21m00Tcm4TlvDq8ikWAM',
+                    sample_rate: 24000,
+                    stability: 0.5,
+                    similarity_boost: 0.75,
                 },
             },
         },
@@ -91,7 +87,7 @@ export async function GET() {
 
         return NextResponse.json({
             status: 'test_complete',
-            tts_vendor: 'elevenlabs',
+            tts_structure: 'tts.vendor + tts.params (NOT tts.provider)',
             envCheck: {
                 AGORA_APP_ID: mask(appId),
                 LLM_URL: mask(llmUrl),
