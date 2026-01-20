@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 
-// 测试端点：完全复制 simple-voice-ai 的成功配置格式
+// 测试端点：使用 ElevenLabs TTS
 export async function GET() {
     const appId = process.env.AGORA_APP_ID || ''
     const customerId = process.env.AGORA_CUSTOMER_ID || ''
@@ -8,19 +8,19 @@ export async function GET() {
     const llmUrl = (process.env.LLM_URL || '').trim()
     const llmApiKey = (process.env.LLM_API_KEY || '').trim()
     const llmModel = (process.env.LLM_MODEL || 'qwen-turbo').trim()
+    const elevenLabsKey = (process.env.ELEVENLABS_API_KEY || '').trim()
 
     const credentials = Buffer.from(`${customerId}:${customerSecret}`).toString('base64')
     const authHeader = `Basic ${credentials}`
     const apiUrl = `https://api.agora.io/api/conversational-ai-agent/v2/projects/${appId}/join`
 
-    // 完全复制 simple-voice-ai 的请求格式
+    // 使用 ElevenLabs TTS
     const requestBody = {
-        name: `test-simple-${Date.now()}`,
+        name: `test-11labs-${Date.now()}`,
         properties: {
-            channel: `test-ch-simple-${Date.now()}`,
-            token: '',  // 测试时不提供 token
+            channel: `test-ch-11labs-${Date.now()}`,
             agent_rtc_uid: '12345',
-            remote_rtc_uids: [],  // simple-voice-ai 使用空数组
+            remote_rtc_uids: ['67890'],  // 必须有值
             enable_string_uid: false,
             idle_timeout: 120,
             advanced_features: {
@@ -30,7 +30,7 @@ export async function GET() {
             asr: {
                 language: 'zh-CN',
                 provider: {
-                    vendor: 'microsoft',
+                    vendor: 'microsoft',  // ASR 使用 Microsoft (Agora 内置)
                     params: {
                         sample_rate: 16000,
                     },
@@ -43,7 +43,7 @@ export async function GET() {
                 system_messages: [
                     {
                         role: 'system',
-                        content: '你是一个友好的AI语音助手。请用简洁自然的中文回答问题，语速适中，像朋友一样交流。',
+                        content: '你是一个友好的AI语音助手。',
                     },
                 ],
                 params: {
@@ -53,10 +53,15 @@ export async function GET() {
             },
             tts: {
                 provider: {
-                    vendor: 'microsoft',
+                    vendor: 'elevenlabs',
                     params: {
-                        voice_name: 'zh-CN-XiaoxiaoNeural',
-                        sample_rate: 16000,
+                        base_url: 'wss://api.elevenlabs.io/v1',
+                        key: elevenLabsKey,
+                        model_id: 'eleven_flash_v2_5',
+                        voice_id: '21m00Tcm4TlvDq8ikWAM',
+                        sample_rate: 24000,
+                        stability: 0.5,
+                        similarity_boost: 0.75,
                     },
                 },
             },
@@ -86,12 +91,13 @@ export async function GET() {
 
         return NextResponse.json({
             status: 'test_complete',
-            tts_vendor: 'microsoft (simple-voice-ai format)',
+            tts_vendor: 'elevenlabs',
             envCheck: {
                 AGORA_APP_ID: mask(appId),
                 LLM_URL: mask(llmUrl),
                 LLM_API_KEY: mask(llmApiKey),
                 LLM_MODEL: llmModel,
+                ELEVENLABS_API_KEY: mask(elevenLabsKey),
             },
             response: {
                 status: response.status,
