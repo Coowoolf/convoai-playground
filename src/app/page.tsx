@@ -138,6 +138,7 @@ export default function Home() {
         body: JSON.stringify({
           channelName,
           agentUid,
+          userUid,  // 用户的 RTC UID
           userToken: token,
           language,
           ttsVendor,
