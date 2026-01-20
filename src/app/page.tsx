@@ -103,19 +103,39 @@ export default function Home() {
       const { token, appId } = tokenData
 
       // 设置事件监听
+      // 监听用户加入（包括 Agent）
+      client.on('user-joined', (user: { uid: string | number }) => {
+        console.log('🟢 User joined channel:', user.uid)
+        console.log('Agent (UID:', user.uid, ') 已加入频道')
+      })
+
+      // 监听用户离开
+      client.on('user-left', (user: { uid: string | number }) => {
+        console.log('🔴 User left channel:', user.uid)
+      })
+
+      // 监听音频发布
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       client.on('user-published', async (user: any, mediaType: any) => {
-        console.log('User published:', user.uid, mediaType)
-        await client.subscribe(user, mediaType)
-        if (mediaType === 'audio' && user.audioTrack) {
-          user.audioTrack.play()
-          setIsSpeaking(true)
+        console.log('📢 User published:', user.uid, mediaType)
+        try {
+          await client.subscribe(user, mediaType)
+          console.log('✅ Subscribed to:', user.uid, mediaType)
+
+          if (mediaType === 'audio' && user.audioTrack) {
+            console.log('🔊 Playing audio track from:', user.uid)
+            user.audioTrack.play()
+            setIsSpeaking(true)
+            console.log('Agent 开始说话...')
+          }
+        } catch (err) {
+          console.error('❌ Subscribe error:', err)
         }
       })
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       client.on('user-unpublished', (user: any, mediaType: string) => {
-        console.log('User unpublished:', user.uid, mediaType)
+        console.log('📤 User unpublished:', user.uid, mediaType)
         if (mediaType === 'audio') {
           setIsSpeaking(false)
         }
