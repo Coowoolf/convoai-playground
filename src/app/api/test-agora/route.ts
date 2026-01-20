@@ -1,26 +1,88 @@
 import { NextResponse } from 'next/server'
 
-// 测试端点：直接调用 Agora Conversational AI API
+// TTS 配置映射
+const TTS_CONFIGS: Record<string, { vendor: string; defaultParams: Record<string, unknown> }> = {
+    minimax: {
+        vendor: 'minimax',
+        defaultParams: {
+            model: 'speech-01',
+            voice_id: 'female-tianmei',
+            sample_rate: 16000,
+            group_id: process.env.MINIMAX_GROUP_ID || '',
+        },
+    },
+}
+
+const LANGUAGE_CONFIGS: Record<string, { asrLanguage: string; asrVendor: string }> = {
+    'zh-CN': { asrLanguage: 'zh-CN', asrVendor: 'microsoft' },
+}
+
+// 完整测试端点：模拟真实 Agent 启动
 export async function GET() {
     const appId = process.env.AGORA_APP_ID || ''
     const customerId = process.env.AGORA_CUSTOMER_ID || ''
     const customerSecret = process.env.AGORA_CUSTOMER_SECRET || ''
+    const llmUrl = process.env.LLM_URL || ''
+    const llmApiKey = process.env.LLM_API_KEY || ''
+    const llmModel = process.env.LLM_MODEL || 'qwen-turbo'
+    const minimaxApiKey = process.env.MINIMAX_API_KEY || ''
+    const minimaxGroupId = process.env.MINIMAX_GROUP_ID || ''
 
-    // 生成 Basic Auth
     const credentials = Buffer.from(`${customerId}:${customerSecret}`).toString('base64')
     const authHeader = `Basic ${credentials}`
+    const apiUrl = `https://api.agora.io/api/conversational-ai-agent/v2/projects/${appId}/join`
 
-    // 构建最简请求
-    const testPayload = {
-        name: `test-${Date.now()}`,
+    // 构建完整请求体
+    const requestBody = {
+        name: `test-full-${Date.now()}`,
         properties: {
-            channel: `test-channel-${Date.now()}`,
+            channel: `test-ch-full-${Date.now()}`,
             agent_rtc_uid: '12345',
             remote_rtc_uids: ['67890'],
+            enable_string_uid: false,
+            idle_timeout: 120,
+            advanced_features: {
+                enable_aivad: true,
+                enable_bhvs: true,
+            },
+            asr: {
+                language: 'zh-CN',
+                provider: {
+                    vendor: 'microsoft',
+                    params: {
+                        sample_rate: 16000,
+                    },
+                },
+            },
+            llm: {
+                url: llmUrl,
+                api_key: llmApiKey,
+                model: llmModel,
+                system_messages: [
+                    {
+                        role: 'system',
+                        content: '你是一个友好的AI语音助手。',
+                    },
+                ],
+                params: {
+                    temperature: 0.7,
+                    max_tokens: 500,
+                },
+            },
+            tts: {
+                provider: {
+                    vendor: 'minimax',
+                    params: {
+                        model: 'speech-01',
+                        voice_id: 'female-tianmei',
+                        sample_rate: 16000,
+                        group_id: minimaxGroupId,
+                        api_key: minimaxApiKey,
+                    },
+                },
+            },
         },
     }
-
-    const apiUrl = `https://api.agora.io/api/conversational-ai-agent/v2/projects/${appId}/join`
 
     try {
         const response = await fetch(apiUrl, {
@@ -29,7 +91,7 @@ export async function GET() {
                 'Content-Type': 'application/json',
                 Authorization: authHeader,
             },
-            body: JSON.stringify(testPayload),
+            body: JSON.stringify(requestBody),
         })
 
         const responseText = await response.text()
@@ -40,24 +102,29 @@ export async function GET() {
             responseData = { rawText: responseText }
         }
 
+        // 掩码敏感信息
+        const mask = (s: string) => s ? `${s.slice(0, 6)}...(len:${s.length})` : '[EMPTY]'
+
         return NextResponse.json({
             status: 'test_complete',
+            envCheck: {
+                AGORA_APP_ID: mask(appId),
+                AGORA_CUSTOMER_ID: mask(customerId),
+                AGORA_CUSTOMER_SECRET: mask(customerSecret),
+                LLM_URL: mask(llmUrl),
+                LLM_API_KEY: mask(llmApiKey),
+                LLM_MODEL: llmModel,
+                MINIMAX_API_KEY: mask(minimaxApiKey),
+                MINIMAX_GROUP_ID: mask(minimaxGroupId),
+            },
             request: {
                 url: apiUrl,
-                authHeaderPreview: authHeader.slice(0, 15) + '...',
-                payload: testPayload,
+                payloadPreview: JSON.stringify(requestBody).slice(0, 200) + '...',
             },
             response: {
                 status: response.status,
                 statusText: response.statusText,
-                headers: Object.fromEntries(response.headers.entries()),
                 data: responseData,
-            },
-            credentials: {
-                appIdLen: appId.length,
-                customerIdLen: customerId.length,
-                customerSecretLen: customerSecret.length,
-                base64Credentials: credentials.slice(0, 20) + '...',
             },
         })
     } catch (error) {
