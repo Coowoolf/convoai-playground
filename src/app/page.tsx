@@ -88,7 +88,7 @@ export default function Home() {
 
       console.log('Channel:', channelName, 'User UID:', userUid, 'Agent UID:', agentUid)
 
-      // 获取 Token
+      // 获取用户 Token
       const tokenResponse = await fetch('/api/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -100,7 +100,17 @@ export default function Home() {
         throw new Error('App ID not returned from server')
       }
 
+      // 为 Agent 生成专用 Token (关键！Agent 需要自己的 Token)
+      const agentTokenResponse = await fetch('/api/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channelName, uid: agentUid }),
+      })
+      const agentTokenData = await agentTokenResponse.json()
+      console.log('✅ Agent Token generated for UID:', agentUid)
+
       const { token, appId } = tokenData
+      const agentToken = agentTokenData.token
 
       // 设置事件监听
       // 监听用户加入（包括 Agent）
@@ -159,7 +169,7 @@ export default function Home() {
           channelName,
           agentUid,
           userUid,  // 用户的 RTC UID
-          userToken: token,
+          userToken: agentToken,  // 使用 Agent 专用的 Token！
           language,
           ttsVendor,
           systemPrompt,
