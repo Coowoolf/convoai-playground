@@ -18,7 +18,7 @@ export default function Home() {
 
   // 对话配置
   const [language, setLanguage] = useState('zh-CN')
-  const [ttsVendor, setTtsVendor] = useState('microsoft')  // Microsoft TTS 内置支持
+  const [ttsVendor, setTtsVendor] = useState('elevenlabs')  // ElevenLabs TTS (Agora 官方支持)
   const [systemPrompt, setSystemPrompt] = useState(
     '你是一个友好的AI语音助手。请用简洁自然的语言回答问题，语速适中，像朋友一样交流。'
   )
@@ -276,10 +276,8 @@ export default function Home() {
               onChange={(e) => setTtsVendor(e.target.value)}
               disabled={state !== 'idle'}
             >
+              <option value="elevenlabs">ElevenLabs (推荐)</option>
               <option value="microsoft">Microsoft (内置)</option>
-              <option value="minimax">{t(locale, 'tts.minimax')}</option>
-              <option value="elevenlabs">{t(locale, 'tts.elevenlabs')}</option>
-              <option value="volcengine">{t(locale, 'tts.volcengine')}</option>
             </select>
           </div>
 

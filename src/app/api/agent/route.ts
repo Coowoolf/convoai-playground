@@ -9,28 +9,19 @@ function getAgoraCredentials() {
     }
 }
 
-// TTS 配置映射 - 根据 Agora 文档配置
-const getTTSConfig = (vendor: string) => {
+// TTS 配置映射 - 根据 Agora 官方支持的 vendors
+// 支持: microsoft, elevenlabs, cartesia, openai, hume, rime, fish_audio, google, amazon_polly
+// 注意: Minimax 不在官方直接支持列表中!
+const getTTSConfig = (vendor: string, language: string) => {
     switch (vendor) {
-        case 'minimax':
-            return {
-                vendor: 'minimax',
-                params: {
-                    key: process.env.MINIMAX_API_KEY || '',
-                    model: 'speech-01-turbo',
-                    voice_id: 'female-tianmei',
-                    sample_rate: 16000,
-                    group_id: process.env.MINIMAX_GROUP_ID || '',
-                },
-            }
         case 'elevenlabs':
             return {
                 vendor: 'elevenlabs',
                 params: {
                     base_url: 'wss://api.elevenlabs.io/v1',
-                    key: process.env.ELEVENLABS_API_KEY || '',
+                    key: (process.env.ELEVENLABS_API_KEY || '').trim(),
                     model_id: 'eleven_flash_v2_5',
-                    voice_id: '21m00Tcm4TlvDq8ikWAM', // Rachel
+                    voice_id: '21m00Tcm4TlvDq8ikWAM', // Rachel - multilingual
                     sample_rate: 24000,
                     stability: 0.5,
                     similarity_boost: 0.75,
@@ -38,10 +29,12 @@ const getTTSConfig = (vendor: string) => {
             }
         case 'microsoft':
         default:
+            // Microsoft Azure TTS - 内置支持
+            const voiceName = language === 'en-US' ? 'en-US-JennyNeural' : 'zh-CN-XiaoxiaoNeural'
             return {
                 vendor: 'microsoft',
                 params: {
-                    voice_name: 'zh-CN-XiaoxiaoNeural',
+                    voice_name: voiceName,
                     sample_rate: 16000,
                 },
             }
@@ -63,7 +56,7 @@ export async function POST(request: NextRequest) {
             userUid,
             userToken,
             language = 'zh-CN',
-            ttsVendor = 'minimax',
+            ttsVendor = 'elevenlabs',  // 默认使用 ElevenLabs
             systemPrompt,
             temperature = 0.7,
             maxTokens = 500,
@@ -85,8 +78,8 @@ export async function POST(request: NextRequest) {
         // 获取语言配置
         const langConfig = LANGUAGE_CONFIGS[language] || LANGUAGE_CONFIGS['zh-CN']
 
-        // 获取 TTS 配置
-        const ttsConfig = getTTSConfig(ttsVendor)
+        // 获取 TTS 配置 - 仅使用 Agora 官方支持的 vendors
+        const ttsConfig = getTTSConfig(ttsVendor, language)
 
         // 生成 Basic Auth
         const credentials = Buffer.from(`${customerId}:${customerSecret}`).toString('base64')
