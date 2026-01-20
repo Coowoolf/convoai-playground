@@ -70,7 +70,8 @@ function getMinimaxTTSParams(language: string) {
         voice_setting: {
             voice_id: langConfig.minimaxVoice,
         },
-        url: 'wss://api.minimax.chat/ws/v1/t2a_v2',
+        // 使用官方文档中的 URL
+        url: 'wss://api-uw.minimax.io/ws/v1/t2a_v2',
     }
 }
 
