@@ -1,5 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+// 简化的日志存储
+const logs: Array<{ time: string; type: string; data: unknown }> = []
+function log(type: string, data: unknown) {
+    logs.push({ time: new Date().toISOString(), type, data })
+    if (logs.length > 50) logs.shift()
+    console.log(`[${type}]`, JSON.stringify(data, null, 2))
+}
+
 // 环境变量在函数内部读取以确保 Next.js 运行时已加载
 function getAgoraCredentials() {
     return {
@@ -9,9 +17,7 @@ function getAgoraCredentials() {
     }
 }
 
-// TTS 配置映射 - 根据 Agora 官方支持的 vendors
-// 支持: microsoft, elevenlabs, cartesia, openai, hume, rime, fish_audio, google, amazon_polly
-// 注意: Minimax 不在官方直接支持列表中!
+// TTS 配置映射 - 仅使用 Agora 官方支持的 vendors
 const getTTSConfig = (vendor: string, language: string) => {
     switch (vendor) {
         case 'elevenlabs':
@@ -21,7 +27,7 @@ const getTTSConfig = (vendor: string, language: string) => {
                     base_url: 'wss://api.elevenlabs.io/v1',
                     key: (process.env.ELEVENLABS_API_KEY || '').trim(),
                     model_id: 'eleven_flash_v2_5',
-                    voice_id: '21m00Tcm4TlvDq8ikWAM', // Rachel - multilingual
+                    voice_id: '21m00Tcm4TlvDq8ikWAM',
                     sample_rate: 24000,
                     stability: 0.5,
                     similarity_boost: 0.75,
@@ -29,7 +35,6 @@ const getTTSConfig = (vendor: string, language: string) => {
             }
         case 'microsoft':
         default:
-            // Microsoft Azure TTS - 内置支持
             const voiceName = language === 'en-US' ? 'en-US-JennyNeural' : 'zh-CN-XiaoxiaoNeural'
             return {
                 vendor: 'microsoft',
@@ -50,36 +55,40 @@ const LANGUAGE_CONFIGS: Record<string, { asrLanguage: string; asrVendor: string 
 
 export async function POST(request: NextRequest) {
     try {
+        const body = await request.json()
+        log('REQUEST_BODY', body)
+
         const {
             channelName,
             agentUid,
             userUid,
             userToken,
             language = 'zh-CN',
-            ttsVendor = 'elevenlabs',  // 默认使用 ElevenLabs
+            ttsVendor = 'microsoft',  // 默认使用 Microsoft (已验证可用)
             systemPrompt,
             temperature = 0.7,
             maxTokens = 500,
             llmUrl,
             llmApiKey,
             llmModel = 'qwen-turbo',
-        } = await request.json()
+        } = body
 
         if (!channelName || !agentUid || !userUid) {
-            return NextResponse.json(
-                { error: 'Missing required parameters: channelName, agentUid, userUid' },
-                { status: 400 }
-            )
+            const error = { error: 'Missing required parameters', missing: { channelName: !channelName, agentUid: !agentUid, userUid: !userUid } }
+            log('VALIDATION_ERROR', error)
+            return NextResponse.json(error, { status: 400 })
         }
 
         // 获取 Agora 凭证
         const { appId, customerId, customerSecret } = getAgoraCredentials()
+        log('CREDENTIALS', { appIdLen: appId.length, customerIdLen: customerId.length, customerSecretLen: customerSecret.length })
 
         // 获取语言配置
         const langConfig = LANGUAGE_CONFIGS[language] || LANGUAGE_CONFIGS['zh-CN']
 
-        // 获取 TTS 配置 - 仅使用 Agora 官方支持的 vendors
+        // 获取 TTS 配置
         const ttsConfig = getTTSConfig(ttsVendor, language)
+        log('TTS_CONFIG', { vendor: ttsVendor, config: ttsConfig })
 
         // 生成 Basic Auth
         const credentials = Buffer.from(`${customerId}:${customerSecret}`).toString('base64')
@@ -129,7 +138,7 @@ export async function POST(request: NextRequest) {
             },
         }
 
-        console.log('Starting agent with config:', JSON.stringify(requestBody, null, 2))
+        log('AGORA_REQUEST', { url: AGORA_CONVO_AI_API, body: requestBody })
 
         const response = await fetch(AGORA_CONVO_AI_API, {
             method: 'POST',
@@ -140,12 +149,19 @@ export async function POST(request: NextRequest) {
             body: JSON.stringify(requestBody),
         })
 
-        const data = await response.json()
-        console.log('Agora API response:', response.status, data)
+        const responseText = await response.text()
+        let data
+        try {
+            data = JSON.parse(responseText)
+        } catch {
+            data = { rawText: responseText }
+        }
+
+        log('AGORA_RESPONSE', { status: response.status, statusText: response.statusText, data })
 
         if (!response.ok) {
             return NextResponse.json(
-                { error: data.message || 'Failed to start agent', details: data },
+                { error: data.message || data.detail || 'Failed to start agent', details: data },
                 { status: response.status }
             )
         }
@@ -156,7 +172,7 @@ export async function POST(request: NextRequest) {
             ...data,
         })
     } catch (error) {
-        console.error('Agent start error:', error)
+        log('EXCEPTION', { error: String(error), stack: error instanceof Error ? error.stack : undefined })
         return NextResponse.json(
             { error: 'Failed to start agent', details: String(error) },
             { status: 500 }
@@ -167,6 +183,7 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
     try {
         const { agentId } = await request.json()
+        log('DELETE_REQUEST', { agentId })
 
         if (!agentId) {
             return NextResponse.json({ error: 'Missing agentId' }, { status: 400 })
@@ -176,6 +193,7 @@ export async function DELETE(request: NextRequest) {
         const credentials = Buffer.from(`${customerId}:${customerSecret}`).toString('base64')
 
         const stopUrl = `https://api.agora.io/api/conversational-ai-agent/v2/projects/${appId}/agents/${agentId}/leave`
+        log('DELETE_URL', stopUrl)
 
         const response = await fetch(stopUrl, {
             method: 'POST',
@@ -186,13 +204,19 @@ export async function DELETE(request: NextRequest) {
         })
 
         const data = await response.json()
+        log('DELETE_RESPONSE', { status: response.status, data })
 
         return NextResponse.json({
             status: 'stopped',
             ...data,
         })
     } catch (error) {
-        console.error('Agent stop error:', error)
+        log('DELETE_EXCEPTION', { error: String(error) })
         return NextResponse.json({ error: 'Failed to stop agent' }, { status: 500 })
     }
+}
+
+// 获取日志端点
+export async function GET() {
+    return NextResponse.json({ logs, count: logs.length })
 }
