@@ -1,42 +1,499 @@
+/* ============================================
+   ConvoAI Playground - 多巴胺极客风格设计系统
+   ============================================ */
+
+/* === 1. 设计 Tokens === */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* 背景色 */
+  --bg-cream: #F5F3EF;
+  --bg-cream-warm: #FFF9F0;
+  --bg-card: #FFFFFF;
+
+  /* 多巴胺渐变 */
+  --gradient-blue: linear-gradient(135deg, #5B9FFF, #7B68EE);
+  --gradient-purple: linear-gradient(135deg, #A78BFA, #E879F9);
+  --gradient-pink: linear-gradient(135deg, #F472B6, #FCA5A5);
+  --gradient-orange: linear-gradient(135deg, #FB923C, #FBBF24);
+
+  /* 文字颜色 */
+  --text-primary: #1A1A1A;
+  --text-secondary: #666666;
+  --text-muted: #888888;
+
+  /* 卡片样式 */
+  --card-radius: 24px;
+  --card-radius-sm: 16px;
+  --card-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --card-shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.12);
+
+  /* 按钮阴影 */
+  --btn-shadow: 4px 4px 12px rgba(167, 139, 250, 0.3), -2px -2px 8px rgba(255, 255, 255, 0.8);
+  --btn-shadow-active: 2px 2px 6px rgba(167, 139, 250, 0.4), -1px -1px 4px rgba(255, 255, 255, 0.6);
+
+  /* 间距 */
+  --spacing-xs: 8px;
+  --spacing-sm: 12px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+
+  /* 过渡 */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s ease;
+
+  /* 字体 */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* === 2. 基础重置 === */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
 html,
 body {
-  max-width: 100vw;
-  overflow-x: hidden;
-}
-
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  height: 100%;
+  font-family: var(--font-sans);
+  background: var(--bg-cream);
+  color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
+/* === 3. 布局容器 === */
+.app-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-lg);
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
+/* === 4. Header === */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-md) 0;
+  margin-bottom: var(--spacing-lg);
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
+.header-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  background: var(--gradient-purple);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.header-controls {
+  display: flex;
+  gap: var(--spacing-md);
+  align-items: center;
+}
+
+.lang-switch {
+  display: flex;
+  gap: var(--spacing-xs);
+  background: var(--bg-card);
+  padding: 4px;
+  border-radius: var(--card-radius-sm);
+  box-shadow: var(--card-shadow);
+}
+
+.lang-btn {
+  padding: 6px 12px;
+  border: none;
+  background: transparent;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  transition: var(--transition-fast);
+}
+
+.lang-btn.active {
+  background: var(--gradient-blue);
+  color: white;
+}
+
+/* === 5. 卡片组件 === */
+.card {
+  background: var(--bg-card);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+  padding: var(--spacing-lg);
+  transition: var(--transition-normal);
+}
+
+.card:hover {
+  box-shadow: var(--card-shadow-hover);
+}
+
+.card-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-md);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+/* === 6. Prompt 编辑器 === */
+.prompt-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: var(--spacing-lg);
+}
+
+.prompt-editor {
+  width: 100%;
+  min-height: 300px;
+  resize: vertical;
+  border: 2px solid transparent;
+  border-radius: var(--card-radius-sm);
+  padding: var(--spacing-md);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  font-family: var(--font-sans);
+  background: var(--bg-cream-warm);
+  color: var(--text-primary);
+  transition: var(--transition-fast);
+}
+
+.prompt-editor:focus {
+  outline: none;
+  border-color: #A78BFA;
+  box-shadow: 0 0 0 4px rgba(167, 139, 250, 0.15);
+}
+
+.prompt-editor::placeholder {
+  color: var(--text-muted);
+}
+
+/* === 7. 配置区域 === */
+.config-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+}
+
+.param-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.param-label {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.param-slider {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--bg-cream);
+  outline: none;
+}
+
+.param-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--gradient-purple);
+  cursor: pointer;
+  box-shadow: var(--btn-shadow);
+}
+
+.param-input {
+  padding: 10px 14px;
+  border: 2px solid var(--bg-cream);
+  border-radius: 12px;
+  font-size: 0.95rem;
+  background: var(--bg-cream-warm);
+  transition: var(--transition-fast);
+}
+
+.param-input:focus {
+  outline: none;
+  border-color: #A78BFA;
+}
+
+/* === 8. 选择器 === */
+.select-wrapper {
+  position: relative;
+}
+
+.select {
+  width: 100%;
+  padding: 10px 14px;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  background: var(--bg-cream-warm);
+  color: var(--text-primary);
+  cursor: pointer;
+  appearance: none;
+  transition: var(--transition-fast);
+}
+
+.select:focus {
+  outline: none;
+  border-color: #A78BFA;
+}
+
+.select-arrow {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--text-muted);
+}
+
+/* === 9. 对话历史 === */
+.conversation-panel {
+  max-height: 200px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.message {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--card-radius-sm);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.message-user {
+  background: var(--gradient-blue);
+  color: white;
+  align-self: flex-end;
+  max-width: 80%;
+}
+
+.message-ai {
+  background: var(--bg-cream);
+  color: var(--text-primary);
+  align-self: flex-start;
+  max-width: 80%;
+}
+
+.message-icon {
+  margin-right: var(--spacing-xs);
+}
+
+/* === 10. 电话绑定 === */
+.phone-section {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: var(--bg-cream-warm);
+  border-radius: var(--card-radius-sm);
+  margin-bottom: var(--spacing-lg);
+}
+
+.phone-input {
+  flex: 1;
+  padding: 10px 14px;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  background: var(--bg-card);
+  transition: var(--transition-fast);
+}
+
+.phone-input:focus {
+  outline: none;
+  border-color: #A78BFA;
+}
+
+.phone-status {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: 0.875rem;
+  color: #10B981;
+}
+
+/* === 11. 主按钮 === */
+.voice-button-container {
+  display: flex;
+  justify-content: center;
+  padding: var(--spacing-lg) 0;
+}
+
+.voice-button {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: none;
+  background: var(--gradient-purple);
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+  box-shadow: var(--btn-shadow);
+  transition: var(--transition-normal);
+}
+
+.voice-button:hover {
+  transform: scale(1.05);
+}
+
+.voice-button:active {
+  transform: scale(0.98);
+  box-shadow: var(--btn-shadow-active);
+}
+
+.voice-button.active {
+  background: var(--gradient-pink);
+  animation: pulse 2s infinite;
+}
+
+.voice-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.voice-button-icon {
+  font-size: 2rem;
+}
+
+/* === 12. 状态指示器 === */
+.status-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--card-radius-sm);
+  font-size: 0.875rem;
+  margin-bottom: var(--spacing-md);
+}
+
+.status-connecting {
+  background: rgba(251, 146, 60, 0.15);
+  color: #FB923C;
+}
+
+.status-connected {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10B981;
+}
+
+.status-speaking {
+  background: rgba(167, 139, 250, 0.15);
+  color: #A78BFA;
+}
+
+/* === 13. 动画 === */
+@keyframes pulse {
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(244, 114, 182, 0.4);
   }
+
+  50% {
+    box-shadow: 0 0 0 20px rgba(244, 114, 182, 0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease;
+}
+
+/* === 14. 响应式 === */
+@media (max-width: 768px) {
+  .config-row {
+    grid-template-columns: 1fr;
+  }
+
+  .header {
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+
+  .header-controls {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .voice-button {
+    width: 100px;
+    height: 100px;
+  }
+}
+
+/* === 15. 浮动装饰 === */
+.floating-shape {
+  position: fixed;
+  border-radius: 50%;
+  opacity: 0.4;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.shape-1 {
+  width: 80px;
+  height: 80px;
+  background: var(--gradient-pink);
+  top: 10%;
+  right: 5%;
+}
+
+.shape-2 {
+  width: 50px;
+  height: 50px;
+  background: var(--gradient-blue);
+  top: 60%;
+  left: 3%;
+}
+
+.shape-3 {
+  width: 40px;
+  height: 40px;
+  background: var(--gradient-orange);
+  bottom: 15%;
+  right: 10%;
+}
+
+.shape-4 {
+  width: 30px;
+  height: 30px;
+  background: var(--gradient-purple);
+  top: 30%;
+  left: 8%;
 }

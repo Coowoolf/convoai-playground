@@ -1,0 +1,60 @@
+{
+    "title": "ConvoAI Playground",
+    "subtitle": "Conversational AI Engine Testing Platform",
+    "header": {
+        "title": "🎯 ConvoAI Playground"
+    },
+    "language": {
+        "label": "Language",
+        "zh": "Chinese",
+        "en": "English",
+        "ja": "Japanese"
+    },
+    "tts": {
+        "label": "TTS Engine",
+        "minimax": "Minimax",
+        "elevenlabs": "Elevenlabs",
+        "volcengine": "Volcengine"
+    },
+    "prompt": {
+        "label": "📝 System Prompt",
+        "placeholder": "Enter your System Prompt...\n\nExample: You are a friendly AI voice assistant. Please respond in a concise and natural manner."
+    },
+    "params": {
+        "label": "⚙️ Parameters",
+        "temperature": "Temperature",
+        "maxTokens": "Max Tokens",
+        "speed": "Speech Rate"
+    },
+    "conversation": {
+        "label": "💬 Conversation History",
+        "empty": "No conversation yet. Click the button below to start.",
+        "you": "You",
+        "ai": "AI"
+    },
+    "phone": {
+        "label": "📞 Phone",
+        "placeholder": "Enter phone number",
+        "bind": "Bind",
+        "unbind": "Unbind",
+        "bound": "Bound",
+        "notBound": "Not Bound"
+    },
+    "voiceButton": {
+        "start": "Start Chat",
+        "stop": "End Chat",
+        "connecting": "Connecting..."
+    },
+    "status": {
+        "idle": "Ready",
+        "connecting": "Connecting...",
+        "connected": "Connected",
+        "listening": "🎤 Listening...",
+        "speaking": "🔊 AI Speaking..."
+    },
+    "errors": {
+        "micPermission": "Please allow microphone access",
+        "connectionFailed": "Connection failed. Please try again.",
+        "agentStartFailed": "Failed to start agent"
+    }
+}

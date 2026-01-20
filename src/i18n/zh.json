@@ -1,0 +1,60 @@
+{
+    "title": "ConvoAI Playground",
+    "subtitle": "声网对话式 AI 引擎体验测试平台",
+    "header": {
+        "title": "🎯 ConvoAI Playground"
+    },
+    "language": {
+        "label": "语种",
+        "zh": "中文",
+        "en": "英文",
+        "ja": "日语"
+    },
+    "tts": {
+        "label": "TTS 引擎",
+        "minimax": "Minimax",
+        "elevenlabs": "Elevenlabs",
+        "volcengine": "火山引擎"
+    },
+    "prompt": {
+        "label": "📝 System Prompt",
+        "placeholder": "输入你的 System Prompt...\n\n例如：你是一个友好的 AI 语音助手，请用简洁自然的语言回答问题，语速适中。"
+    },
+    "params": {
+        "label": "⚙️ 参数配置",
+        "temperature": "Temperature",
+        "maxTokens": "Max Tokens",
+        "speed": "语速"
+    },
+    "conversation": {
+        "label": "💬 对话历史",
+        "empty": "暂无对话记录，点击下方按钮开始对话",
+        "you": "你",
+        "ai": "AI"
+    },
+    "phone": {
+        "label": "📞 电话",
+        "placeholder": "输入电话号码",
+        "bind": "绑定",
+        "unbind": "解绑",
+        "bound": "已绑定",
+        "notBound": "未绑定"
+    },
+    "voiceButton": {
+        "start": "开始对话",
+        "stop": "结束对话",
+        "connecting": "连接中..."
+    },
+    "status": {
+        "idle": "准备就绪",
+        "connecting": "正在连接...",
+        "connected": "已连接",
+        "listening": "🎤 正在听你说话...",
+        "speaking": "🔊 AI 正在说话..."
+    },
+    "errors": {
+        "micPermission": "请允许浏览器访问麦克风",
+        "connectionFailed": "连接失败，请重试",
+        "agentStartFailed": "Agent 启动失败"
+    }
+}
