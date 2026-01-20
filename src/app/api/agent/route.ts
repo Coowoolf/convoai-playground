@@ -137,8 +137,10 @@ export async function POST(request: NextRequest) {
                 asr: {
                     language: language,
                 },
-                // LLM (使用语言相关的 system prompt 和 greeting)
+                // LLM (Custom LLM - OpenAI 兼容格式)
                 llm: {
+                    vendor: 'custom',  // 使用 Custom LLM
+                    style: 'openai',   // OpenAI 兼容格式
                     url: llmUrl,
                     api_key: llmApiKey,
                     system_messages: [
