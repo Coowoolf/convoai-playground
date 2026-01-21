@@ -298,16 +298,10 @@ export default function Home() {
             </select>
           </div>
 
-          {/* TTS 选择 */}
+          {/* TTS 固定使用 ElevenLabs */}
           <div className="select-wrapper">
-            <select
-              className="select"
-              value={ttsVendor}
-              onChange={(e) => setTtsVendor(e.target.value)}
-              disabled={state !== 'idle'}
-            >
-              <option value="elevenlabs">ElevenLabs</option>
-              <option value="minimax">Minimax</option>
+            <select className="select" disabled>
+              <option>ElevenLabs TTS</option>
             </select>
           </div>
 

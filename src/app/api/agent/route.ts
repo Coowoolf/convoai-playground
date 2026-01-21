@@ -17,34 +17,30 @@ function getAgoraCredentials() {
     }
 }
 
-// 语言相关配置
+// 语言相关配置 (ARES + OpenAI + ElevenLabs)
 const LANG_CONFIG: Record<string, {
     greeting: string
     failure: string
     systemPrompt: string
     elevenLabsVoice: string
-    minimaxVoice: string
 }> = {
     'zh-CN': {
         greeting: '你好！有什么可以帮助你的吗？',
         failure: '请稍等一下。',
         systemPrompt: '你是一个友好的AI语音助手。请用简洁自然的中文回答问题。',
         elevenLabsVoice: 'pNInz6obpgDQGcFmaJgB', // Adam (multilingual)
-        minimaxVoice: 'Chinese_calm_female1',
     },
     'en-US': {
         greeting: 'Hello! How can I help you today?',
         failure: 'Please hold on a moment.',
         systemPrompt: 'You are a friendly AI voice assistant. Please respond in natural, conversational English.',
         elevenLabsVoice: '21m00Tcm4TlvDq8ikWAM', // Rachel (English)
-        minimaxVoice: 'English_captivating_female1',
     },
     'ja-JP': {
         greeting: 'こんにちは！何かお手伝いできることはありますか？',
         failure: '少々お待ちください。',
         systemPrompt: 'あなたはフレンドリーなAI音声アシスタントです。自然な日本語で簡潔に答えてください。',
         elevenLabsVoice: 'pNInz6obpgDQGcFmaJgB', // Adam (multilingual)
-        minimaxVoice: 'Japanese_calm_female1',
     },
 }
 
@@ -60,21 +56,6 @@ function getElevenLabsTTSParams(language: string) {
     }
 }
 
-// Minimax TTS 配置 (根据语言选择 voice)
-function getMinimaxTTSParams(language: string) {
-    const langConfig = LANG_CONFIG[language] || LANG_CONFIG['zh-CN']
-    return {
-        api_key: (process.env.MINIMAX_API_KEY || '').trim(),
-        group_id: (process.env.MINIMAX_GROUP_ID || '').trim(),
-        model: 'speech-02-turbo',
-        voice_setting: {
-            voice_id: langConfig.minimaxVoice,
-        },
-        // 使用官方文档中的 URL
-        url: 'wss://api-uw.minimax.io/ws/v1/t2a_v2',
-    }
-}
-
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json()
@@ -86,7 +67,6 @@ export async function POST(request: NextRequest) {
             userUid,
             userToken,
             language = 'zh-CN',
-            ttsVendor = 'elevenlabs',
             systemPrompt,
             temperature = 0.7,
             maxTokens = 500,
@@ -105,24 +85,22 @@ export async function POST(request: NextRequest) {
         const credentials = Buffer.from(`${customerId}:${customerSecret}`).toString('base64')
         const apiUrl = `https://api.agora.io/api/conversational-ai-agent/v2/projects/${appId}/join`
 
-        // LLM 配置
+        // LLM 配置 (OpenAI)
         const llmUrl = (process.env.LLM_URL || '').trim()
         const llmApiKey = (process.env.LLM_API_KEY || '').trim()
-        const llmModel = (process.env.LLM_MODEL || 'qwen-turbo').trim()
+        const llmModel = (process.env.LLM_MODEL || 'gpt-4o-mini').trim()
 
         log('LLM_CONFIG', { urlLen: llmUrl.length, keyLen: llmApiKey.length, model: llmModel })
 
         // 获取语言相关配置
         const langConfig = LANG_CONFIG[language] || LANG_CONFIG['zh-CN']
 
-        // TTS 配置 (根据语言选择 voice)
-        const ttsParams = ttsVendor === 'minimax'
-            ? getMinimaxTTSParams(language)
-            : getElevenLabsTTSParams(language)
+        // TTS 配置 (ElevenLabs)
+        const ttsParams = getElevenLabsTTSParams(language)
 
-        log('TTS_CONFIG', { vendor: ttsVendor, language, params: ttsParams })
+        log('TTS_CONFIG', { vendor: 'elevenlabs', language, params: ttsParams })
 
-        // 构建请求体 (完全按照官方文档格式)
+        // 构建请求体 (ARES + OpenAI + ElevenLabs)
         const requestBody = {
             name: `convoai-${Date.now()}`,
             properties: {
@@ -134,14 +112,14 @@ export async function POST(request: NextRequest) {
                 advanced_features: {
                     enable_aivad: true,
                 },
-                // ASR
+                // ASR (ARES - 无需 Key)
                 asr: {
                     language: language,
                 },
-                // LLM (Custom LLM - OpenAI 兼容格式)
+                // LLM (OpenAI)
                 llm: {
-                    vendor: 'custom',  // 使用 Custom LLM
-                    style: 'openai',   // OpenAI 兼容格式
+                    vendor: 'custom',
+                    style: 'openai',
                     url: llmUrl,
                     api_key: llmApiKey,
                     system_messages: [
@@ -159,9 +137,9 @@ export async function POST(request: NextRequest) {
                         max_tokens: Number(maxTokens),
                     },
                 },
-                // TTS (使用语言相关的 voice)
+                // TTS (ElevenLabs)
                 tts: {
-                    vendor: ttsVendor === 'minimax' ? 'minimax' : 'elevenlabs',
+                    vendor: 'elevenlabs',
                     params: ttsParams,
                 },
             },
