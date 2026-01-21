@@ -97,7 +97,7 @@ function getMiniMaxTTS() {
             group_id: (process.env.MINIMAX_GROUP_ID || '').trim(),
             model: 'speech-02-turbo',
             voice_setting: {
-                voice_id: 'Calm_Woman',
+                voice_id: 'femalegirl03',  // 用户验证可用的音色
                 speed: 1.0,
                 vol: 1.0,
                 pitch: 0,
