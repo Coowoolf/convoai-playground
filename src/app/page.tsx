@@ -46,7 +46,7 @@ export default function Home() {
     if (platform === 'agora') {
       setTtsVendor('elevenlabs')
     } else {
-      setTtsVendor('volcano')
+      setTtsVendor('minimax') // 声网默认使用 MiniMax
     }
   }, [platform])
 
@@ -295,7 +295,20 @@ export default function Home() {
       <header className="header">
         <h1 className="header-title">{t(locale, 'header.title')}</h1>
         <div className="header-controls">
-          {/* 语种选择 */}
+          {/* 1. 平台选择 */}
+          <div className="select-wrapper">
+            <select
+              className="select"
+              value={platform}
+              onChange={(e) => setPlatform(e.target.value as 'agora' | 'shengwang')}
+              disabled={state !== 'idle'}
+            >
+              <option value="agora">Agora 国际版</option>
+              <option value="shengwang">声网中国版</option>
+            </select>
+          </div>
+
+          {/* 2. 语种选择 */}
           <div className="select-wrapper">
             <select
               className="select"
@@ -309,20 +322,14 @@ export default function Home() {
             </select>
           </div>
 
-          {/* 平台选择 */}
+          {/* 3. LLM 显示 (根据平台自动，不可选) */}
           <div className="select-wrapper">
-            <select
-              className="select"
-              value={platform}
-              onChange={(e) => setPlatform(e.target.value as 'agora' | 'shengwang')}
-              disabled={state !== 'idle'}
-            >
-              <option value="agora">Agora 国际版</option>
-              <option value="shengwang">声网中国版</option>
+            <select className="select" disabled>
+              <option>{platform === 'agora' ? 'OpenAI' : '阿里云通义千问'}</option>
             </select>
           </div>
 
-          {/* TTS 选择 (根据平台显示不同选项) */}
+          {/* 4. TTS 选择 (根据平台显示不同选项) */}
           <div className="select-wrapper">
             <select
               className="select"
@@ -331,14 +338,11 @@ export default function Home() {
               disabled={state !== 'idle'}
             >
               {platform === 'agora' ? (
-                <>
-                  <option value="elevenlabs">ElevenLabs</option>
-                  <option value="minimax">MiniMax</option>
-                </>
+                <option value="elevenlabs">ElevenLabs</option>
               ) : (
                 <>
-                  <option value="volcano">火山引擎</option>
                   <option value="minimax">MiniMax</option>
+                  <option value="volcano">火山引擎</option>
                 </>
               )}
             </select>
