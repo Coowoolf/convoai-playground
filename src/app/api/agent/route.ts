@@ -97,7 +97,7 @@ function getMiniMaxTTS() {
             group_id: (process.env.MINIMAX_GROUP_ID || '').trim(),
             model: 'speech-02-turbo',
             voice_setting: {
-                voice_id: 'Chinese_calm_female1',
+                voice_id: 'Calm_Woman',  // MiniMax 有效音色ID
             },
             url: 'wss://api.minimaxi.com/ws/v1/t2a_v2', // 国内版 URL
         },
