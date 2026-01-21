@@ -22,9 +22,7 @@ export default function Home() {
   const [ttsVendor, setTtsVendor] = useState('minimax')  // 默认 MiniMax
   const [minimaxVoice, setMinimaxVoice] = useState('femalegirl03')  // MiniMax 音色
   const [llmProvider, setLlmProvider] = useState<'openai' | 'openrouter'>('openai')  // LLM 提供商
-  const [systemPrompt, setSystemPrompt] = useState(
-    '你是一个友好的AI语音助手。请用简洁自然的语言回答问题，语速适中，像朋友一样交流。'
-  )
+  const [systemPrompt, setSystemPrompt] = useState('')  // 默认空白，方便直接粘贴
 
   // 参数配置
   const [temperature, setTemperature] = useState(0.7)
