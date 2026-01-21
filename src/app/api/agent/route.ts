@@ -8,99 +8,131 @@ function log(type: string, data: unknown) {
     console.log(`[${type}]`, JSON.stringify(data, null, 2))
 }
 
+// ============================================
 // 平台配置
-const PLATFORM_CONFIG = {
-    agora: {
-        name: 'Agora 国际版',
-        apiBase: 'https://api.agora.io/api/conversational-ai-agent/v2/projects',
-    },
-    shengwang: {
-        name: '声网中国版',
-        apiBase: 'https://api.agora.io/cn/api/conversational-ai-agent/v2/projects',
-    },
-}
+// ============================================
 
-// 获取指定平台的凭证
-function getCredentials(platform: 'agora' | 'shengwang') {
-    if (platform === 'shengwang') {
-        return {
-            appId: process.env.SHENGWANG_APP_ID || process.env.AGORA_APP_ID || '',
-            customerId: process.env.SHENGWANG_CUSTOMER_ID || process.env.AGORA_CUSTOMER_ID || '',
-            customerSecret: process.env.SHENGWANG_CUSTOMER_SECRET || process.env.AGORA_CUSTOMER_SECRET || '',
-            appCertificate: process.env.SHENGWANG_APP_CERTIFICATE || process.env.AGORA_APP_CERTIFICATE || '',
-        }
-    }
-    return {
+// Agora 国际版配置
+const AGORA_CONFIG = {
+    name: 'Agora 国际版',
+    apiBase: 'https://api.agora.io/api/conversational-ai-agent/v2/projects',
+    getCredentials: () => ({
         appId: process.env.AGORA_APP_ID || '',
+        appCertificate: process.env.AGORA_APP_CERTIFICATE || '',
         customerId: process.env.AGORA_CUSTOMER_ID || '',
         customerSecret: process.env.AGORA_CUSTOMER_SECRET || '',
-        appCertificate: process.env.AGORA_APP_CERTIFICATE || '',
+    }),
+    // LLM: OpenAI
+    getLLMConfig: () => ({
+        url: 'https://api.openai.com/v1/chat/completions',
+        apiKey: (process.env.OPENAI_API_KEY || '').trim(),
+        model: 'gpt-4o-mini',
+    }),
+    // TTS 选项: ElevenLabs, MiniMax
+    ttsOptions: ['elevenlabs', 'minimax'],
+}
+
+// 声网中国版配置
+const SHENGWANG_CONFIG = {
+    name: '声网中国版',
+    apiBase: 'https://api.agora.io/cn/api/conversational-ai-agent/v2/projects',
+    getCredentials: () => ({
+        appId: process.env.SHENGWANG_APP_ID || '',
+        appCertificate: process.env.SHENGWANG_APP_CERTIFICATE || '',
+        customerId: process.env.SHENGWANG_CUSTOMER_ID || '',
+        customerSecret: process.env.SHENGWANG_CUSTOMER_SECRET || '',
+    }),
+    // LLM: 阿里云通义千问
+    getLLMConfig: () => ({
+        url: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
+        apiKey: (process.env.ALIYUN_API_KEY || '').trim(),
+        model: 'qwen-turbo',
+    }),
+    // TTS 选项: 火山引擎, MiniMax
+    ttsOptions: ['volcano', 'minimax'],
+}
+
+// ============================================
+// TTS 配置
+// ============================================
+
+// ElevenLabs TTS (Agora 国际版专用)
+function getElevenLabsTTSParams(language: string) {
+    const voiceMap: Record<string, string> = {
+        'zh-CN': 'pNInz6obpgDQGcFmaJgB', // Adam (multilingual)
+        'en-US': '21m00Tcm4TlvDq8ikWAM', // Rachel
+        'ja-JP': 'pNInz6obpgDQGcFmaJgB', // Adam
+    }
+    return {
+        vendor: 'elevenlabs',
+        params: {
+            base_url: 'wss://api.elevenlabs.io/v1',
+            key: (process.env.ELEVENLABS_API_KEY || '').trim(),
+            model_id: 'eleven_flash_v2_5',
+            voice_id: voiceMap[language] || voiceMap['zh-CN'],
+            sample_rate: 24000,
+        },
     }
 }
 
+// MiniMax TTS (国际版和国内版通用)
+function getMiniMaxTTSParams() {
+    return {
+        vendor: 'minimax',
+        params: {
+            api_key: (process.env.MINIMAX_API_KEY || '').trim(),
+            group_id: (process.env.MINIMAX_GROUP_ID || '').trim(),
+            model: 'speech-02-turbo',
+            voice_setting: {
+                voice_id: 'Chinese_calm_female1',
+            },
+            url: 'wss://api-uw.minimax.io/ws/v1/t2a_v2',
+        },
+    }
+}
+
+// 火山引擎 TTS (声网中国版专用)
+function getVolcanoTTSParams() {
+    return {
+        vendor: 'volcano',
+        params: {
+            access_token: (process.env.VOLCANO_ACCESS_TOKEN || '').trim(),
+            app_id: (process.env.VOLCANO_APP_ID || '').trim(),
+            cluster: 'volcano_tts',
+            voice_type: 'zh_female_cancan',
+            speed_ratio: 1.0,
+        },
+    }
+}
+
+// ============================================
 // 语言相关配置
+// ============================================
 const LANG_CONFIG: Record<string, {
     greeting: string
     failure: string
     systemPrompt: string
-    elevenLabsVoice: string
 }> = {
     'zh-CN': {
         greeting: '你好！有什么可以帮助你的吗？',
         failure: '请稍等一下。',
         systemPrompt: '你是一个友好的AI语音助手。请用简洁自然的中文回答问题。',
-        elevenLabsVoice: 'pNInz6obpgDQGcFmaJgB',
     },
     'en-US': {
         greeting: 'Hello! How can I help you today?',
         failure: 'Please hold on a moment.',
         systemPrompt: 'You are a friendly AI voice assistant. Please respond in natural, conversational English.',
-        elevenLabsVoice: '21m00Tcm4TlvDq8ikWAM',
     },
     'ja-JP': {
         greeting: 'こんにちは！何かお手伝いできることはありますか？',
         failure: '少々お待ちください。',
         systemPrompt: 'あなたはフレンドリーなAI音声アシスタントです。自然な日本語で簡潔に答えてください。',
-        elevenLabsVoice: 'pNInz6obpgDQGcFmaJgB',
     },
 }
 
-// ElevenLabs TTS 配置 (Agora 国际版)
-function getElevenLabsTTSParams(language: string) {
-    const langConfig = LANG_CONFIG[language] || LANG_CONFIG['zh-CN']
-    return {
-        base_url: 'wss://api.elevenlabs.io/v1',
-        key: (process.env.ELEVENLABS_API_KEY || '').trim(),
-        model_id: 'eleven_flash_v2_5',
-        voice_id: langConfig.elevenLabsVoice,
-        sample_rate: 24000,
-    }
-}
-
-// 火山引擎 TTS 配置 (声网中国版)
-function getVolcanoTTSParams() {
-    return {
-        access_token: (process.env.VOLCANO_ACCESS_TOKEN || '').trim(),
-        app_id: (process.env.VOLCANO_APP_ID || '').trim(),
-        cluster: 'volcano_tts',
-        voice_type: 'zh_female_cancan', // 中文女声
-        speed_ratio: 1.0,
-    }
-}
-
-// MiniMax TTS 配置
-function getMiniMaxTTSParams() {
-    return {
-        api_key: (process.env.MINIMAX_API_KEY || '').trim(),
-        group_id: (process.env.MINIMAX_GROUP_ID || '').trim(),
-        model: 'speech-02-turbo',
-        voice_setting: {
-            voice_id: 'Chinese_calm_female1',
-        },
-        url: 'wss://api-uw.minimax.io/ws/v1/t2a_v2',
-    }
-}
-
+// ============================================
+// API 处理
+// ============================================
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json()
@@ -115,8 +147,8 @@ export async function POST(request: NextRequest) {
             systemPrompt,
             temperature = 0.7,
             maxTokens = 500,
-            platform = 'agora', // 新增：平台选择 'agora' | 'shengwang'
-            ttsVendor = 'elevenlabs', // TTS 供应商
+            platform = 'agora', // 'agora' | 'shengwang'
+            ttsVendor, // 由平台决定可选项
         } = body
 
         if (!channelName || !agentUid || !userUid) {
@@ -126,46 +158,49 @@ export async function POST(request: NextRequest) {
             )
         }
 
-        // 获取平台配置
-        const platformConfig = PLATFORM_CONFIG[platform as keyof typeof PLATFORM_CONFIG] || PLATFORM_CONFIG.agora
-        const credentials = getCredentials(platform as 'agora' | 'shengwang')
+        // 根据平台选择配置
+        const isShengwang = platform === 'shengwang'
+        const config = isShengwang ? SHENGWANG_CONFIG : AGORA_CONFIG
+        const credentials = config.getCredentials()
+        const llmConfig = config.getLLMConfig()
 
-        log('PLATFORM', { platform, platformName: platformConfig.name, appIdLen: credentials.appId.length })
+        log('PLATFORM', {
+            platform,
+            name: config.name,
+            appIdLen: credentials.appId.length,
+            llmModel: llmConfig.model,
+        })
 
-        const authBase64 = Buffer.from(`${credentials.customerId}:${credentials.customerSecret}`).toString('base64')
-        const apiUrl = `${platformConfig.apiBase}/${credentials.appId}/join`
+        // 验证 TTS 选项
+        const validTtsVendor = config.ttsOptions.includes(ttsVendor)
+            ? ttsVendor
+            : config.ttsOptions[0] // 默认使用第一个
 
-        // LLM 配置
-        const llmUrl = (process.env.LLM_URL || '').trim()
-        const llmApiKey = (process.env.LLM_API_KEY || '').trim()
-        const llmModel = (process.env.LLM_MODEL || 'qwen-turbo').trim()
+        // 获取 TTS 配置
+        let ttsConfig
+        switch (validTtsVendor) {
+            case 'elevenlabs':
+                ttsConfig = getElevenLabsTTSParams(language)
+                break
+            case 'volcano':
+                ttsConfig = getVolcanoTTSParams()
+                break
+            case 'minimax':
+            default:
+                ttsConfig = getMiniMaxTTSParams()
+        }
 
-        log('LLM_CONFIG', { urlLen: llmUrl.length, keyLen: llmApiKey.length, model: llmModel })
+        log('CONFIG', {
+            llm: { model: llmConfig.model, urlLen: llmConfig.url.length },
+            tts: { vendor: validTtsVendor },
+        })
 
         // 获取语言相关配置
         const langConfig = LANG_CONFIG[language] || LANG_CONFIG['zh-CN']
 
-        // TTS 配置 (根据平台和 vendor 选择)
-        let ttsConfig
-        if (ttsVendor === 'volcano') {
-            ttsConfig = {
-                vendor: 'volcano',
-                params: getVolcanoTTSParams(),
-            }
-        } else if (ttsVendor === 'minimax') {
-            ttsConfig = {
-                vendor: 'minimax',
-                params: getMiniMaxTTSParams(),
-            }
-        } else {
-            // 默认 ElevenLabs
-            ttsConfig = {
-                vendor: 'elevenlabs',
-                params: getElevenLabsTTSParams(language),
-            }
-        }
-
-        log('TTS_CONFIG', ttsConfig)
+        // 构建 API URL
+        const authBase64 = Buffer.from(`${credentials.customerId}:${credentials.customerSecret}`).toString('base64')
+        const apiUrl = `${config.apiBase}/${credentials.appId}/join`
 
         // 构建请求体
         const requestBody = {
@@ -179,16 +214,16 @@ export async function POST(request: NextRequest) {
                 advanced_features: {
                     enable_aivad: true,
                 },
-                // ASR (凤鸣/ARES - 无需额外配置)
+                // ASR (凤鸣/ARES)
                 asr: {
                     language: language,
                 },
-                // LLM
+                // LLM (根据平台选择)
                 llm: {
                     vendor: 'custom',
                     style: 'openai',
-                    url: llmUrl,
-                    api_key: llmApiKey,
+                    url: llmConfig.url,
+                    api_key: llmConfig.apiKey,
                     system_messages: [
                         {
                             role: 'system',
@@ -199,12 +234,12 @@ export async function POST(request: NextRequest) {
                     greeting_message: langConfig.greeting,
                     failure_message: langConfig.failure,
                     params: {
-                        model: llmModel,
+                        model: llmConfig.model,
                         temperature: Number(temperature),
                         max_tokens: Number(maxTokens),
                     },
                 },
-                // TTS
+                // TTS (根据平台和选择)
                 tts: ttsConfig,
             },
         }
@@ -240,7 +275,9 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({
             agentId: data.agent_id || data.id,
             status: 'started',
-            platform: platform,
+            platform,
+            llmModel: llmConfig.model,
+            ttsVendor: validTtsVendor,
             ...data,
         })
     } catch (error) {
@@ -259,10 +296,10 @@ export async function DELETE(request: NextRequest) {
             return NextResponse.json({ error: 'Missing agentId' }, { status: 400 })
         }
 
-        const platformConfig = PLATFORM_CONFIG[platform as keyof typeof PLATFORM_CONFIG] || PLATFORM_CONFIG.agora
-        const credentials = getCredentials(platform as 'agora' | 'shengwang')
+        const config = platform === 'shengwang' ? SHENGWANG_CONFIG : AGORA_CONFIG
+        const credentials = config.getCredentials()
         const authBase64 = Buffer.from(`${credentials.customerId}:${credentials.customerSecret}`).toString('base64')
-        const stopUrl = `${platformConfig.apiBase}/${credentials.appId}/agents/${agentId}/leave`
+        const stopUrl = `${config.apiBase}/${credentials.appId}/agents/${agentId}/leave`
 
         const response = await fetch(stopUrl, {
             method: 'POST',

@@ -41,6 +41,15 @@ export default function Home() {
   // 对话历史
   const [messages, setMessages] = useState<Message[]>([])
 
+  // 切换平台时自动调整 TTS 选择
+  useEffect(() => {
+    if (platform === 'agora') {
+      setTtsVendor('elevenlabs')
+    } else {
+      setTtsVendor('volcano')
+    }
+  }, [platform])
+
   // Refs
   const clientRef = useRef<unknown>(null)
   const audioTrackRef = useRef<unknown>(null)
@@ -313,7 +322,7 @@ export default function Home() {
             </select>
           </div>
 
-          {/* TTS 选择 */}
+          {/* TTS 选择 (根据平台显示不同选项) */}
           <div className="select-wrapper">
             <select
               className="select"
@@ -321,9 +330,17 @@ export default function Home() {
               onChange={(e) => setTtsVendor(e.target.value)}
               disabled={state !== 'idle'}
             >
-              <option value="elevenlabs">ElevenLabs</option>
-              <option value="minimax">MiniMax</option>
-              {platform === 'shengwang' && <option value="volcano">火山引擎</option>}
+              {platform === 'agora' ? (
+                <>
+                  <option value="elevenlabs">ElevenLabs</option>
+                  <option value="minimax">MiniMax</option>
+                </>
+              ) : (
+                <>
+                  <option value="volcano">火山引擎</option>
+                  <option value="minimax">MiniMax</option>
+                </>
+              )}
             </select>
           </div>
 
