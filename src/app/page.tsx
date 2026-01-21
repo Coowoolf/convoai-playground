@@ -17,8 +17,9 @@ export default function Home() {
   const [locale, setLocale] = useState<Locale>('zh')
 
   // 对话配置
+  const [platform, setPlatform] = useState<'agora' | 'shengwang'>('agora')  // 平台选择
   const [language, setLanguage] = useState('zh-CN')
-  const [ttsVendor, setTtsVendor] = useState('elevenlabs')  // ElevenLabs TTS (Agora 官方支持)
+  const [ttsVendor, setTtsVendor] = useState('elevenlabs')  // TTS 供应商
   const [systemPrompt, setSystemPrompt] = useState(
     '你是一个友好的AI语音助手。请用简洁自然的语言回答问题，语速适中，像朋友一样交流。'
   )
@@ -170,6 +171,7 @@ export default function Home() {
           agentUid,
           userUid,  // 用户的 RTC UID
           userToken: agentToken,  // 使用 Agent 专用的 Token！
+          platform,  // 平台选择: 'agora' | 'shengwang'
           language,
           ttsVendor,
           systemPrompt,
@@ -195,7 +197,7 @@ export default function Home() {
       setState('idle')
       await cleanup()
     }
-  }, [language, ttsVendor, systemPrompt, temperature, maxTokens, addMessage])
+  }, [platform, language, ttsVendor, systemPrompt, temperature, maxTokens, addMessage])
 
   // 停止对话
   const stopConversation = useCallback(async () => {
@@ -215,7 +217,7 @@ export default function Home() {
         await fetch('/api/agent', {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ agentId: agentIdRef.current }),
+          body: JSON.stringify({ agentId: agentIdRef.current, platform }),
         })
       } catch (e) {
         console.error('Failed to stop agent:', e)
@@ -298,10 +300,30 @@ export default function Home() {
             </select>
           </div>
 
-          {/* TTS 固定使用 ElevenLabs */}
+          {/* 平台选择 */}
           <div className="select-wrapper">
-            <select className="select" disabled>
-              <option>ElevenLabs TTS</option>
+            <select
+              className="select"
+              value={platform}
+              onChange={(e) => setPlatform(e.target.value as 'agora' | 'shengwang')}
+              disabled={state !== 'idle'}
+            >
+              <option value="agora">Agora 国际版</option>
+              <option value="shengwang">声网中国版</option>
+            </select>
+          </div>
+
+          {/* TTS 选择 */}
+          <div className="select-wrapper">
+            <select
+              className="select"
+              value={ttsVendor}
+              onChange={(e) => setTtsVendor(e.target.value)}
+              disabled={state !== 'idle'}
+            >
+              <option value="elevenlabs">ElevenLabs</option>
+              <option value="minimax">MiniMax</option>
+              {platform === 'shengwang' && <option value="volcano">火山引擎</option>}
             </select>
           </div>
 
