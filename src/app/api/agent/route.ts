@@ -23,10 +23,10 @@ const AGORA_CONFIG = {
         customerSecret: process.env.AGORA_CUSTOMER_SECRET || '',
     }),
     llm: {
-        name: 'OpenAI',
-        url: 'https://api.openai.com/v1/chat/completions',
-        getApiKey: () => (process.env.OPENAI_API_KEY || '').trim(),
-        model: 'gpt-4o-mini',
+        name: 'OpenRouter',
+        url: 'https://openrouter.ai/api/v1/chat/completions',
+        getApiKey: () => (process.env.OPENROUTER_API_KEY || '').trim(),
+        model: 'openai/gpt-4o-mini',
     },
     tts: {
         options: ['elevenlabs'],
