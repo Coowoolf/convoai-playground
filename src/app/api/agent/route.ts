@@ -196,7 +196,9 @@ export async function POST(request: NextRequest) {
                 remote_rtc_uids: [String(userUid)],
                 idle_timeout: 120,
                 advanced_features: { enable_aivad: true },
-                asr: { language },
+                asr: isShengwang
+                    ? { vendor: 'fengming', language }  // 声网中国版用凤鸣
+                    : { vendor: 'ares', language },     // Agora 国际版用 ARES
                 llm: {
                     vendor: 'custom',
                     style: 'openai',
