@@ -433,142 +433,146 @@ export default function Home() {
         </div >
       </header >
 
-      {/* Prompt 编辑区 */}
-      < section className="card prompt-section" >
-        <h2 className="card-title">{t(locale, 'prompt.label')}</h2>
-        <textarea
-          className="prompt-editor"
-          value={systemPrompt}
-          onChange={(e) => setSystemPrompt(e.target.value)}
-          placeholder={t(locale, 'prompt.placeholder')}
-          disabled={state !== 'idle'}
-        />
-      </section >
-
-      {/* 配置和对话历史区 */}
-      < div className="config-row" >
-        {/* 参数配置 */}
-        < div className="card" >
-          <h3 className="card-title">{t(locale, 'params.label')}</h3>
-          <div className="param-group">
-            <label className="param-label">
-              {t(locale, 'params.temperature')}: {temperature.toFixed(1)}
-            </label>
-            <input
-              type="range"
-              className="param-slider"
-              min="0"
-              max="2"
-              step="0.1"
-              value={temperature}
-              onChange={(e) => setTemperature(Number(e.target.value))}
-              disabled={state !== 'idle'}
-            />
-          </div>
-          <div className="param-group" style={{ marginTop: '16px' }}>
-            <label className="param-label">{t(locale, 'params.maxTokens')}</label>
-            <input
-              type="number"
-              className="param-input"
-              min="50"
-              max="4000"
-              step="50"
-              value={maxTokens}
-              onChange={(e) => setMaxTokens(Number(e.target.value))}
-              disabled={state !== 'idle'}
-            />
-          </div>
-        </div >
-
-        {/* 对话历史 */}
-        < div className="card" >
-          <h3 className="card-title">{t(locale, 'conversation.label')}</h3>
-          <div className="conversation-panel">
-            {messages.length === 0 ? (
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-                {t(locale, 'conversation.empty')}
-              </p>
-            ) : (
-              messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`message fade-in ${msg.role === 'user' ? 'message-user' : 'message-ai'}`}
-                >
-                  <span className="message-icon">{msg.role === 'user' ? '👤' : '🤖'}</span>
-                  {msg.content}
-                </div>
-              ))
-            )}
-          </div>
-        </div >
-      </div >
-
-      {/* 电话绑定区 */}
-      < div className="phone-section" >
-        <span>{t(locale, 'phone.label')}:</span>
-        <input
-          type="tel"
-          className="phone-input"
-          placeholder={t(locale, 'phone.placeholder')}
-          value={phoneNumber}
-          onChange={(e) => setPhoneNumber(e.target.value)}
-          disabled={phoneBound}
-        />
-        {
-          phoneBound ? (
-            <span className="phone-status">
-              ✓ {t(locale, 'phone.bound')}
-            </span>
-          ) : (
+      {/* 主内容区 - 左右分栏 */}
+      <div className="main-content">
+        {/* 左侧面板 - System Prompt */}
+        <div className="left-panel">
+          {/* 悬浮开始对话按钮 */}
+          <div className="floating-button">
             <button
-              className="voice-button"
-              style={{ width: 'auto', height: 'auto', padding: '10px 20px', borderRadius: '12px' }}
-              onClick={bindPhone}
-              disabled={!phoneNumber}
+              className={`floating-voice-btn ${state === 'connected' ? 'active' : ''}`}
+              onClick={state === 'connected' ? stopConversation : startConversation}
+              disabled={state === 'connecting' || state === 'disconnecting'}
             >
-              {t(locale, 'phone.bind')}
+              <span className="btn-icon">
+                {state === 'connected' ? '⏹️' : '🎤'}
+              </span>
+              <span className="btn-text">
+                {state === 'connecting'
+                  ? '连接中'
+                  : state === 'connected'
+                    ? '停止'
+                    : '开始'}
+              </span>
             </button>
-          )
-        }
-      </div >
-
-      {/* 状态指示器 */}
-      {
-        getStatusText() && (
-          <div className={`status-indicator ${getStatusClass()}`}>
-            {getStatusText()}
           </div>
-        )
-      }
 
-      {/* 错误提示 */}
-      {
-        error && (
-          <div className="status-indicator" style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#EF4444' }}>
-            ❌ {error}
+          {/* System Prompt 编辑区 */}
+          <section className="card prompt-section">
+            <h2 className="card-title">{t(locale, 'prompt.label')}</h2>
+            <textarea
+              className="prompt-editor"
+              value={systemPrompt}
+              onChange={(e) => setSystemPrompt(e.target.value)}
+              placeholder={t(locale, 'prompt.placeholder')}
+              disabled={state !== 'idle'}
+            />
+          </section>
+        </div>
+
+        {/* 右侧面板 - 配置和控制 */}
+        <div className="right-panel">
+          {/* 状态指示器 */}
+          {getStatusText() && (
+            <div className={`status-indicator ${getStatusClass()}`}>
+              {getStatusText()}
+            </div>
+          )}
+
+          {/* 错误提示 */}
+          {error && (
+            <div className="status-indicator" style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#EF4444' }}>
+              ❌ {error}
+            </div>
+          )}
+
+          {/* 参数配置 */}
+          <div className="card">
+            <h3 className="card-title">⚙️ {t(locale, 'params.label')}</h3>
+            <div className="param-group">
+              <label className="param-label">
+                {t(locale, 'params.temperature')}: {temperature.toFixed(1)}
+              </label>
+              <input
+                type="range"
+                className="param-slider"
+                min="0"
+                max="2"
+                step="0.1"
+                value={temperature}
+                onChange={(e) => setTemperature(Number(e.target.value))}
+                disabled={state !== 'idle'}
+              />
+            </div>
+            <div className="param-group" style={{ marginTop: '16px' }}>
+              <label className="param-label">{t(locale, 'params.maxTokens')}</label>
+              <input
+                type="number"
+                className="param-input"
+                min="50"
+                max="4000"
+                step="50"
+                value={maxTokens}
+                onChange={(e) => setMaxTokens(Number(e.target.value))}
+                disabled={state !== 'idle'}
+              />
+            </div>
           </div>
-        )
-      }
 
-      {/* 主按钮 */}
-      <div className="voice-button-container">
-        <button
-          className={`voice-button ${state === 'connected' ? 'active' : ''}`}
-          onClick={state === 'connected' ? stopConversation : startConversation}
-          disabled={state === 'connecting' || state === 'disconnecting'}
-        >
-          <span className="voice-button-icon">
-            {state === 'connected' ? '⏹️' : '🎤'}
-          </span>
-          <span>
-            {state === 'connecting'
-              ? t(locale, 'voiceButton.connecting')
-              : state === 'connected'
-                ? t(locale, 'voiceButton.stop')
-                : t(locale, 'voiceButton.start')}
-          </span>
-        </button>
+          {/* 对话历史 */}
+          <div className="card">
+            <h3 className="card-title">💬 {t(locale, 'conversation.label')}</h3>
+            <div className="conversation-panel">
+              {messages.length === 0 ? (
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                  {t(locale, 'conversation.empty')}
+                </p>
+              ) : (
+                messages.map((msg) => (
+                  <div
+                    key={msg.id}
+                    className={`message fade-in ${msg.role === 'user' ? 'message-user' : 'message-ai'}`}
+                  >
+                    <span className="message-icon">{msg.role === 'user' ? '👤' : '🤖'}</span>
+                    {msg.content}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* 电话绑定 */}
+          <div className="card">
+            <h3 className="card-title">📞 {t(locale, 'phone.label')}</h3>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <input
+                type="tel"
+                className="phone-input"
+                placeholder={t(locale, 'phone.placeholder')}
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                disabled={phoneBound}
+                style={{ flex: 1 }}
+              />
+              {phoneBound ? (
+                <span className="phone-status">
+                  ✓ {t(locale, 'phone.bound')}
+                </span>
+              ) : (
+                <button
+                  className="floating-voice-btn"
+                  style={{ width: '50px', height: '50px', fontSize: '0.7rem' }}
+                  onClick={bindPhone}
+                  disabled={!phoneNumber}
+                >
+                  绑定
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
+
 
       {/* 调试日志面板 */}
       <div className="card" style={{ marginTop: '20px' }}>

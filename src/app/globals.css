@@ -176,7 +176,121 @@ body {
   color: var(--text-muted);
 }
 
-/* === 7. 配置区域 === */
+/* === 7. 主内容区布局 === */
+.main-content {
+  display: flex;
+  gap: var(--spacing-lg);
+  flex: 1;
+  min-height: 0;
+}
+
+/* 左侧 Prompt 区域 */
+.left-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* 右侧控制面板 */
+.right-panel {
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  flex-shrink: 0;
+}
+
+/* 悬浮按钮 */
+.floating-button {
+  position: absolute;
+  top: -60px;
+  right: 20px;
+  z-index: 10;
+}
+
+.floating-voice-btn {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: none;
+  background: var(--gradient-purple);
+  color: white;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  box-shadow: var(--btn-shadow);
+  transition: var(--transition-normal);
+}
+
+.floating-voice-btn:hover {
+  transform: scale(1.08);
+  box-shadow: 0 6px 20px rgba(167, 139, 250, 0.5);
+}
+
+.floating-voice-btn:active {
+  transform: scale(0.95);
+}
+
+.floating-voice-btn.active {
+  background: var(--gradient-pink);
+  animation: pulse 2s infinite;
+}
+
+.floating-voice-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.floating-voice-btn .btn-icon {
+  font-size: 1.5rem;
+}
+
+.floating-voice-btn .btn-text {
+  font-size: 0.7rem;
+}
+
+/* === 8. Prompt 编辑器 === */
+.prompt-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0;
+}
+
+.prompt-editor {
+  width: 100%;
+  flex: 1;
+  min-height: 400px;
+  resize: none;
+  border: 2px solid transparent;
+  border-radius: var(--card-radius-sm);
+  padding: var(--spacing-md);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  font-family: var(--font-sans);
+  background: var(--bg-cream-warm);
+  color: var(--text-primary);
+  transition: var(--transition-fast);
+}
+
+.prompt-editor:focus {
+  outline: none;
+  border-color: #A78BFA;
+  box-shadow: 0 0 0 4px rgba(167, 139, 250, 0.15);
+}
+
+.prompt-editor::placeholder {
+  color: var(--text-muted);
+}
+
+/* === 9. 配置区域 === */
 .config-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
