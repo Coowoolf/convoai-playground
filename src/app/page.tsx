@@ -99,15 +99,21 @@ export default function Home() {
       console.log('Channel:', channelName, 'User UID:', userUid, 'Agent UID:', agentUid)
 
       // 获取用户 Token (根据平台使用对应凭证)
+      console.log('📡 Requesting token for platform:', platform)
       const tokenResponse = await fetch('/api/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ channelName, uid: userUid, platform }),
       })
       const tokenData = await tokenResponse.json()
+      console.log('📡 Token response:', tokenData)
 
-      if (!tokenData.appId) {
-        throw new Error('App ID not returned from server')
+      // 验证 Token 响应
+      if (!tokenResponse.ok) {
+        throw new Error(`Token API error: ${tokenData.error || 'Unknown error'}`)
+      }
+      if (!tokenData.token || !tokenData.appId) {
+        throw new Error(`Invalid token response: token=${!!tokenData.token}, appId=${!!tokenData.appId}`)
       }
 
       // 为 Agent 生成专用 Token (根据平台使用对应凭证)
@@ -117,10 +123,15 @@ export default function Home() {
         body: JSON.stringify({ channelName, uid: agentUid, platform }),
       })
       const agentTokenData = await agentTokenResponse.json()
-      console.log('✅ Agent Token generated for UID:', agentUid)
+      console.log('📡 Agent Token response:', agentTokenData)
+
+      if (!agentTokenResponse.ok || !agentTokenData.token) {
+        throw new Error(`Agent Token API error: ${agentTokenData.error || 'Unknown error'}`)
+      }
 
       const { token, appId } = tokenData
       const agentToken = agentTokenData.token
+      console.log('✅ Tokens generated - User:', token.substring(0, 20) + '...', 'Agent:', agentToken.substring(0, 20) + '...')
 
       // 设置事件监听
       // 监听用户加入（包括 Agent）
