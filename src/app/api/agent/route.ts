@@ -93,13 +93,18 @@ function getMiniMaxTTS() {
     return {
         vendor: 'minimax',
         params: {
-            api_key: (process.env.MINIMAX_API_KEY || '').trim(),
             group_id: (process.env.MINIMAX_GROUP_ID || '').trim(),
-            model: 'speech-02-turbo',
+            key: (process.env.MINIMAX_API_KEY || '').trim(),  // 使用 key 而不是 api_key
+            model: 'speech-2.6-turbo',  // 使用新模型
             voice_setting: {
                 voice_id: 'Chinese_calm_female1',
+                speed: 1,
+                vol: 1,
+                pitch: 0,
             },
-            url: 'wss://api.minimax.chat/ws/v1/t2a_v2', // 国内版 URL
+            audio_setting: {
+                sample_rate: 16000,
+            },
         },
     }
 }
