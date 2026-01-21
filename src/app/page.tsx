@@ -20,6 +20,7 @@ export default function Home() {
   const [platform, setPlatform] = useState<'agora' | 'shengwang'>('shengwang')  // 默认声网中国版
   const [language, setLanguage] = useState('zh-CN')
   const [ttsVendor, setTtsVendor] = useState('minimax')  // 默认 MiniMax
+  const [llmProvider, setLlmProvider] = useState<'openai' | 'openrouter'>('openai')  // LLM 提供商
   const [systemPrompt, setSystemPrompt] = useState(
     '你是一个友好的AI语音助手。请用简洁自然的语言回答问题，语速适中，像朋友一样交流。'
   )
@@ -192,6 +193,7 @@ export default function Home() {
           userUid,  // 用户的 RTC UID
           userToken: agentToken,  // 使用 Agent 专用的 Token！
           platform,  // 平台选择: 'agora' | 'shengwang'
+          llmProvider,  // LLM 提供商: 'openai' | 'openrouter' (仅 Agora)
           language,
           ttsVendor,
           systemPrompt,
@@ -333,11 +335,23 @@ export default function Home() {
             </select>
           </div>
 
-          {/* 3. LLM 显示 (根据平台自动，不可选) */}
+          {/* 3. LLM 选择 (Agora 可选 OpenAI/OpenRouter, 声网固定阿里云) */}
           <div className="select-wrapper">
-            <select className="select" disabled>
-              <option>{platform === 'agora' ? 'OpenAI' : '阿里云通义千问'}</option>
-            </select>
+            {platform === 'agora' ? (
+              <select
+                className="select"
+                value={llmProvider}
+                onChange={(e) => setLlmProvider(e.target.value as 'openai' | 'openrouter')}
+                disabled={state !== 'idle'}
+              >
+                <option value="openai">OpenAI</option>
+                <option value="openrouter">OpenRouter</option>
+              </select>
+            ) : (
+              <select className="select" disabled>
+                <option>阿里云通义千问</option>
+              </select>
+            )}
           </div>
 
           {/* 4. TTS 选择 (根据平台显示不同选项) */}

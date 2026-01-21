@@ -22,11 +22,20 @@ const AGORA_CONFIG = {
         customerId: process.env.AGORA_CUSTOMER_ID || '',
         customerSecret: process.env.AGORA_CUSTOMER_SECRET || '',
     }),
-    llm: {
-        name: 'OpenRouter',
-        url: 'https://openrouter.ai/api/v1/chat/completions',
-        getApiKey: () => (process.env.OPENROUTER_API_KEY || '').trim(),
-        model: 'openai/gpt-4o-mini',
+    // LLM 提供商选项
+    llmProviders: {
+        openai: {
+            name: 'OpenAI',
+            url: 'https://api.openai.com/v1/chat/completions',
+            getApiKey: () => (process.env.OPENAI_API_KEY || '').trim(),
+            model: 'gpt-4o-mini',
+        },
+        openrouter: {
+            name: 'OpenRouter',
+            url: 'https://openrouter.ai/api/v1/chat/completions',
+            getApiKey: () => (process.env.OPENROUTER_API_KEY || '').trim(),
+            model: 'openai/gpt-4o-mini',
+        },
     },
     tts: {
         options: ['elevenlabs'],
@@ -148,6 +157,7 @@ export async function POST(request: NextRequest) {
             temperature = 0.7,
             maxTokens = 500,
             platform = 'agora',
+            llmProvider = 'openai',  // LLM 提供商 (仅 Agora 国际版有效)
             ttsVendor,
         } = body
 
@@ -160,10 +170,20 @@ export async function POST(request: NextRequest) {
         const config = isShengwang ? SHENGWANG_CONFIG : AGORA_CONFIG
         const credentials = config.getCredentials()
 
+        // 选择 LLM 配置
+        let llmConfig
+        if (isShengwang) {
+            llmConfig = SHENGWANG_CONFIG.llm
+        } else {
+            // Agora 国际版: 根据 llmProvider 选择 OpenAI 或 OpenRouter
+            llmConfig = AGORA_CONFIG.llmProviders[llmProvider as 'openai' | 'openrouter'] || AGORA_CONFIG.llmProviders.openai
+        }
+
         log('PLATFORM', {
             platform,
             name: config.name,
-            llm: config.llm.name,
+            llm: llmConfig.name,
+            llmProvider: isShengwang ? 'aliyun' : llmProvider,
             appIdLen: credentials.appId.length,
         })
 
@@ -202,14 +222,14 @@ export async function POST(request: NextRequest) {
                 llm: {
                     vendor: 'custom',
                     style: 'openai',
-                    url: config.llm.url,
-                    api_key: config.llm.getApiKey(),
+                    url: llmConfig.url,
+                    api_key: llmConfig.getApiKey(),
                     system_messages: [{ role: 'system', content: systemPrompt || langConfig.systemPrompt }],
                     max_history: 32,
                     greeting_message: langConfig.greeting,
                     failure_message: langConfig.failure,
                     params: {
-                        model: config.llm.model,
+                        model: llmConfig.model,
                         temperature: Number(temperature),
                         max_tokens: Number(maxTokens),
                     },
@@ -264,7 +284,7 @@ export async function POST(request: NextRequest) {
             agentId: data.agent_id || data.id,
             status: 'started',
             platform,
-            llm: config.llm.name,
+            llm: llmConfig.name,
             tts: ttsConfig.vendor,
             ...data,
         })
