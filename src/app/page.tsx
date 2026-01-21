@@ -42,6 +42,14 @@ export default function Home() {
   // 对话历史
   const [messages, setMessages] = useState<Message[]>([])
 
+  // 调试日志
+  const [debugLogs, setDebugLogs] = useState<Array<{ time: string; type: string; message: string; isError?: boolean }>>([]);
+  const addLog = useCallback((type: string, message: string, isError = false) => {
+    const time = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+    setDebugLogs(prev => [...prev.slice(-50), { time, type, message, isError }]);
+    console.log(`[${type}] ${message}`);
+  }, []);
+
   // 切换平台时自动调整 TTS 选择
   useEffect(() => {
     if (platform === 'agora') {
@@ -82,10 +90,14 @@ export default function Home() {
   const startConversation = useCallback(async () => {
     setState('connecting')
     setError(null)
+    setDebugLogs([])  // 清空之前的日志
+    addLog('🚀 开始', `平台: ${platform}, LLM: ${platform === 'agora' ? llmProvider : 'aliyun'}, TTS: ${ttsVendor}`)
 
     try {
       // 动态导入 Agora SDK
+      addLog('RTC', '加载 Agora SDK...')
       const AgoraRTC = (await import('agora-rtc-sdk-ng')).default
+      addLog('✅ RTC', 'Agora SDK 加载成功')
 
       // 初始化客户端
       const client = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' })
@@ -96,104 +108,104 @@ export default function Home() {
       const userUid = generateUid()
       const agentUid = generateUid()
       channelNameRef.current = channelName
-
-      console.log('Channel:', channelName, 'User UID:', userUid, 'Agent UID:', agentUid)
+      addLog('RTC', `Channel: ${channelName}, UserUID: ${userUid}, AgentUID: ${agentUid}`)
 
       // 获取用户 Token (根据平台使用对应凭证)
-      console.log('📡 Requesting token for platform:', platform)
+      addLog('Token', `请求 Token (${platform})...`)
       const tokenResponse = await fetch('/api/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ channelName, uid: userUid, platform }),
       })
       const tokenData = await tokenResponse.json()
-      console.log('📡 Token response:', tokenData)
 
       // 验证 Token 响应
       if (!tokenResponse.ok) {
+        addLog('❌ Token', `API 错误: ${tokenData.error || 'Unknown error'}`, true)
         throw new Error(`Token API error: ${tokenData.error || 'Unknown error'}`)
       }
       if (!tokenData.token || !tokenData.appId) {
+        addLog('❌ Token', `无效响应: token=${!!tokenData.token}, appId=${!!tokenData.appId}`, true)
         throw new Error(`Invalid token response: token=${!!tokenData.token}, appId=${!!tokenData.appId}`)
       }
+      addLog('✅ Token', `用户 Token 获取成功 (${tokenData.token.substring(0, 15)}...)`)
 
       // 为 Agent 生成专用 Token (根据平台使用对应凭证)
+      addLog('Token', '请求 Agent Token...')
       const agentTokenResponse = await fetch('/api/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ channelName, uid: agentUid, platform }),
       })
       const agentTokenData = await agentTokenResponse.json()
-      console.log('📡 Agent Token response:', agentTokenData)
 
       if (!agentTokenResponse.ok || !agentTokenData.token) {
+        addLog('❌ Token', `Agent Token 获取失败: ${agentTokenData.error || 'Unknown error'}`, true)
         throw new Error(`Agent Token API error: ${agentTokenData.error || 'Unknown error'}`)
       }
 
       const { token, appId } = tokenData
       const agentToken = agentTokenData.token
-      console.log('✅ Tokens generated - User:', token.substring(0, 20) + '...', 'Agent:', agentToken.substring(0, 20) + '...')
+      addLog('✅ Token', `Agent Token 获取成功 (${agentToken.substring(0, 15)}...)`)
 
       // 设置事件监听
-      // 监听用户加入（包括 Agent）
       client.on('user-joined', (user: { uid: string | number }) => {
-        console.log('🟢 User joined channel:', user.uid)
-        console.log('Agent (UID:', user.uid, ') 已加入频道')
+        addLog('✅ RTC', `用户加入频道: UID=${user.uid}`)
       })
 
-      // 监听用户离开
       client.on('user-left', (user: { uid: string | number }) => {
-        console.log('🔴 User left channel:', user.uid)
+        addLog('RTC', `用户离开频道: UID=${user.uid}`)
       })
 
-      // 监听音频发布
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       client.on('user-published', async (user: any, mediaType: any) => {
-        console.log('📢 User published:', user.uid, mediaType)
+        addLog('RTC', `收到媒体流: UID=${user.uid}, 类型=${mediaType}`)
         try {
           await client.subscribe(user, mediaType)
-          console.log('✅ Subscribed to:', user.uid, mediaType)
+          addLog('✅ RTC', `订阅成功: UID=${user.uid}, 类型=${mediaType}`)
 
           if (mediaType === 'audio' && user.audioTrack) {
-            console.log('🔊 Playing audio track from:', user.uid)
+            addLog('🔊 音频', `开始播放 Agent 音频: UID=${user.uid}`)
             user.audioTrack.play()
             setIsSpeaking(true)
-            console.log('Agent 开始说话...')
           }
         } catch (err) {
-          console.error('❌ Subscribe error:', err)
+          addLog('❌ RTC', `订阅失败: ${err}`, true)
         }
       })
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       client.on('user-unpublished', (user: any, mediaType: string) => {
-        console.log('📤 User unpublished:', user.uid, mediaType)
+        addLog('RTC', `停止媒体流: UID=${user.uid}, 类型=${mediaType}`)
         if (mediaType === 'audio') {
           setIsSpeaking(false)
         }
       })
 
       // 加入频道
+      addLog('RTC', `加入频道: ${channelName}...`)
       await client.join(appId, channelName, token, userUid)
-      console.log('Joined channel successfully')
+      addLog('✅ RTC', '成功加入频道')
 
       // 创建并发布音频轨道
+      addLog('RTC', '创建麦克风音频轨道...')
       const audioTrack = await AgoraRTC.createMicrophoneAudioTrack()
       audioTrackRef.current = audioTrack
       await client.publish([audioTrack])
-      console.log('Published audio track')
+      addLog('✅ RTC', '音频轨道发布成功')
 
       // 启动 AI Agent
+      addLog('Agent', `启动 ConvoAI Agent...`)
       const agentResponse = await fetch('/api/agent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           channelName,
           agentUid,
-          userUid,  // 用户的 RTC UID
-          userToken: agentToken,  // 使用 Agent 专用的 Token！
-          platform,  // 平台选择: 'agora' | 'shengwang'
-          llmProvider,  // LLM 提供商: 'openai' | 'openrouter' (仅 Agora)
+          userUid,
+          userToken: agentToken,
+          platform,
+          llmProvider,
           language,
           ttsVendor,
           systemPrompt,
@@ -203,23 +215,30 @@ export default function Home() {
       })
 
       const agentData = await agentResponse.json()
-      console.log('Agent response:', agentData)
 
       if (!agentResponse.ok) {
+        addLog('❌ Agent', `启动失败: ${agentData.error || 'Unknown error'}`, true)
+        if (agentData.details) {
+          addLog('❌ Agent', `详情: ${JSON.stringify(agentData.details)}`, true)
+        }
         throw new Error(agentData.error || 'Failed to start agent')
       }
+
+      addLog('✅ Agent', `启动成功! ID=${agentData.agentId || agentData.agent_id}`)
+      addLog('Agent', `LLM: ${agentData.llm}, TTS: ${agentData.tts}`)
 
       agentIdRef.current = agentData.agentId
       setState('connected')
       setIsListening(true)
+      addLog('✅ 完成', '对话已建立，等待 Agent 加入频道...')
       addMessage('ai', '你好！有什么可以帮助你的吗？')
     } catch (err) {
-      console.error('Connection error:', err)
+      addLog('❌ 错误', err instanceof Error ? err.message : 'Connection failed', true)
       setError(err instanceof Error ? err.message : 'Connection failed')
       setState('idle')
       await cleanup()
     }
-  }, [platform, language, ttsVendor, systemPrompt, temperature, maxTokens, addMessage])
+  }, [platform, language, ttsVendor, systemPrompt, temperature, maxTokens, addMessage, addLog, llmProvider])
 
   // 停止对话
   const stopConversation = useCallback(async () => {
@@ -520,6 +539,51 @@ export default function Home() {
                 : t(locale, 'voiceButton.start')}
           </span>
         </button>
+      </div>
+
+      {/* 调试日志面板 */}
+      <div className="card" style={{ marginTop: '20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+          <h3 className="card-title" style={{ margin: 0 }}>📋 调试日志</h3>
+          <button
+            onClick={() => setDebugLogs([])}
+            style={{
+              padding: '4px 12px',
+              fontSize: '12px',
+              background: 'rgba(239, 68, 68, 0.1)',
+              color: '#EF4444',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+            }}
+          >
+            清空
+          </button>
+        </div>
+        <div
+          style={{
+            background: 'rgba(0, 0, 0, 0.3)',
+            borderRadius: '8px',
+            padding: '12px',
+            maxHeight: '300px',
+            overflowY: 'auto',
+            fontFamily: 'monospace',
+            fontSize: '12px',
+            lineHeight: '1.6',
+          }}
+        >
+          {debugLogs.length === 0 ? (
+            <div style={{ color: 'var(--text-muted)' }}>点击"开始对话"后，日志将显示在这里...</div>
+          ) : (
+            debugLogs.map((log, i) => (
+              <div key={i} style={{ color: log.isError ? '#EF4444' : log.type.includes('✅') ? '#22C55E' : '#E5E7EB' }}>
+                <span style={{ color: '#6B7280' }}>[{log.time}]</span>{' '}
+                <span style={{ color: '#A78BFA' }}>[{log.type}]</span>{' '}
+                {log.message}
+              </div>
+            ))
+          )}
+        </div>
       </div>
     </div>
   )
