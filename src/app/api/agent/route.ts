@@ -89,15 +89,15 @@ function getElevenLabsTTS(language: string) {
 }
 
 // MiniMax 国内版 (声网中国版专用)
-function getMiniMaxTTS() {
+function getMiniMaxTTS(voiceId: string = 'femalegirl03') {
     return {
         vendor: 'minimax',
         params: {
-            key: (process.env.MINIMAX_API_KEY || '').trim(),  // 使用 key 而非 api_key
+            key: (process.env.MINIMAX_API_KEY || '').trim(),
             group_id: (process.env.MINIMAX_GROUP_ID || '').trim(),
             model: 'speech-02-turbo',
             voice_setting: {
-                voice_id: 'femalegirl03',  // 用户验证可用的音色
+                voice_id: voiceId,
                 speed: 1.0,
                 vol: 1.0,
                 pitch: 0,
@@ -162,6 +162,7 @@ export async function POST(request: NextRequest) {
             platform = 'agora',
             llmProvider = 'openai',  // LLM 提供商 (仅 Agora 国际版有效)
             ttsVendor,
+            minimaxVoice = 'femalegirl03',  // MiniMax 音色
         } = body
 
         if (!channelName || !agentUid || !userUid) {
@@ -194,7 +195,7 @@ export async function POST(request: NextRequest) {
         let ttsConfig
         if (isShengwang) {
             // 声网: MiniMax 或 火山
-            ttsConfig = ttsVendor === 'volcano' ? getVolcanoTTS() : getMiniMaxTTS()
+            ttsConfig = ttsVendor === 'volcano' ? getVolcanoTTS() : getMiniMaxTTS(minimaxVoice)
         } else {
             // Agora: 只有 ElevenLabs
             ttsConfig = getElevenLabsTTS(language)

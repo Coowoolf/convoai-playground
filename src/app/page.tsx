@@ -20,6 +20,7 @@ export default function Home() {
   const [platform, setPlatform] = useState<'agora' | 'shengwang'>('shengwang')  // 默认声网中国版
   const [language, setLanguage] = useState('zh-CN')
   const [ttsVendor, setTtsVendor] = useState('minimax')  // 默认 MiniMax
+  const [minimaxVoice, setMinimaxVoice] = useState('femalegirl03')  // MiniMax 音色
   const [llmProvider, setLlmProvider] = useState<'openai' | 'openrouter'>('openai')  // LLM 提供商
   const [systemPrompt, setSystemPrompt] = useState(
     '你是一个友好的AI语音助手。请用简洁自然的语言回答问题，语速适中，像朋友一样交流。'
@@ -208,6 +209,7 @@ export default function Home() {
           llmProvider,
           language,
           ttsVendor,
+          minimaxVoice,  // MiniMax 音色选择
           systemPrompt,
           temperature,
           maxTokens,
@@ -238,7 +240,7 @@ export default function Home() {
       setState('idle')
       await cleanup()
     }
-  }, [platform, language, ttsVendor, systemPrompt, temperature, maxTokens, addMessage, addLog, llmProvider])
+  }, [platform, language, ttsVendor, minimaxVoice, systemPrompt, temperature, maxTokens, addMessage, addLog, llmProvider])
 
   // 停止对话
   const stopConversation = useCallback(async () => {
@@ -392,6 +394,27 @@ export default function Home() {
             </select>
           </div>
 
+          {/* 5. MiniMax 音色选择 (仅声网+MiniMax 时显示) */}
+          {platform === 'shengwang' && ttsVendor === 'minimax' && (
+            <div className="select-wrapper">
+              <select
+                className="select"
+                value={minimaxVoice}
+                onChange={(e) => setMinimaxVoice(e.target.value)}
+                disabled={state !== 'idle'}
+              >
+                <option value="femalegirl01">知性姐姐</option>
+                <option value="femalegirl02">港风爽姐</option>
+                <option value="femalegirl03">暖澄御音</option>
+                <option value="femalegirl04">俏飒流光</option>
+                <option value="femalegirl05">甜邻小语</option>
+                <option value="femalegirl08">磁韵学姐</option>
+                <option value="femalegirl09">松韵从容</option>
+                <option value="shengwangtony">赵斌 Tony</option>
+              </select>
+            </div>
+          )}
+
           {/* 界面语言切换 */}
           <div className="lang-switch">
             <button
@@ -407,11 +430,11 @@ export default function Home() {
               中
             </button>
           </div>
-        </div>
-      </header>
+        </div >
+      </header >
 
       {/* Prompt 编辑区 */}
-      <section className="card prompt-section">
+      < section className="card prompt-section" >
         <h2 className="card-title">{t(locale, 'prompt.label')}</h2>
         <textarea
           className="prompt-editor"
@@ -420,12 +443,12 @@ export default function Home() {
           placeholder={t(locale, 'prompt.placeholder')}
           disabled={state !== 'idle'}
         />
-      </section>
+      </section >
 
       {/* 配置和对话历史区 */}
-      <div className="config-row">
+      < div className="config-row" >
         {/* 参数配置 */}
-        <div className="card">
+        < div className="card" >
           <h3 className="card-title">{t(locale, 'params.label')}</h3>
           <div className="param-group">
             <label className="param-label">
@@ -455,10 +478,10 @@ export default function Home() {
               disabled={state !== 'idle'}
             />
           </div>
-        </div>
+        </div >
 
         {/* 对话历史 */}
-        <div className="card">
+        < div className="card" >
           <h3 className="card-title">{t(locale, 'conversation.label')}</h3>
           <div className="conversation-panel">
             {messages.length === 0 ? (
@@ -477,11 +500,11 @@ export default function Home() {
               ))
             )}
           </div>
-        </div>
-      </div>
+        </div >
+      </div >
 
       {/* 电话绑定区 */}
-      <div className="phone-section">
+      < div className="phone-section" >
         <span>{t(locale, 'phone.label')}:</span>
         <input
           type="tel"
@@ -491,35 +514,41 @@ export default function Home() {
           onChange={(e) => setPhoneNumber(e.target.value)}
           disabled={phoneBound}
         />
-        {phoneBound ? (
-          <span className="phone-status">
-            ✓ {t(locale, 'phone.bound')}
-          </span>
-        ) : (
-          <button
-            className="voice-button"
-            style={{ width: 'auto', height: 'auto', padding: '10px 20px', borderRadius: '12px' }}
-            onClick={bindPhone}
-            disabled={!phoneNumber}
-          >
-            {t(locale, 'phone.bind')}
-          </button>
-        )}
-      </div>
+        {
+          phoneBound ? (
+            <span className="phone-status">
+              ✓ {t(locale, 'phone.bound')}
+            </span>
+          ) : (
+            <button
+              className="voice-button"
+              style={{ width: 'auto', height: 'auto', padding: '10px 20px', borderRadius: '12px' }}
+              onClick={bindPhone}
+              disabled={!phoneNumber}
+            >
+              {t(locale, 'phone.bind')}
+            </button>
+          )
+        }
+      </div >
 
       {/* 状态指示器 */}
-      {getStatusText() && (
-        <div className={`status-indicator ${getStatusClass()}`}>
-          {getStatusText()}
-        </div>
-      )}
+      {
+        getStatusText() && (
+          <div className={`status-indicator ${getStatusClass()}`}>
+            {getStatusText()}
+          </div>
+        )
+      }
 
       {/* 错误提示 */}
-      {error && (
-        <div className="status-indicator" style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#EF4444' }}>
-          ❌ {error}
-        </div>
-      )}
+      {
+        error && (
+          <div className="status-indicator" style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#EF4444' }}>
+            ❌ {error}
+          </div>
+        )
+      }
 
       {/* 主按钮 */}
       <div className="voice-button-container">
@@ -585,6 +614,6 @@ export default function Home() {
           )}
         </div>
       </div>
-    </div>
+    </div >
   )
 }
