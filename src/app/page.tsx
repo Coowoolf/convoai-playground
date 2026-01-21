@@ -98,11 +98,11 @@ export default function Home() {
 
       console.log('Channel:', channelName, 'User UID:', userUid, 'Agent UID:', agentUid)
 
-      // 获取用户 Token
+      // 获取用户 Token (根据平台使用对应凭证)
       const tokenResponse = await fetch('/api/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ channelName, uid: userUid }),
+        body: JSON.stringify({ channelName, uid: userUid, platform }),
       })
       const tokenData = await tokenResponse.json()
 
@@ -110,11 +110,11 @@ export default function Home() {
         throw new Error('App ID not returned from server')
       }
 
-      // 为 Agent 生成专用 Token (关键！Agent 需要自己的 Token)
+      // 为 Agent 生成专用 Token (根据平台使用对应凭证)
       const agentTokenResponse = await fetch('/api/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ channelName, uid: agentUid }),
+        body: JSON.stringify({ channelName, uid: agentUid, platform }),
       })
       const agentTokenData = await agentTokenResponse.json()
       console.log('✅ Agent Token generated for UID:', agentUid)

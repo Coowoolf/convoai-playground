@@ -1,18 +1,31 @@
 import { RtcTokenBuilder, RtcRole } from 'agora-token'
 
+// 根据平台获取凭证
+function getCredentials(platform: 'agora' | 'shengwang') {
+    if (platform === 'shengwang') {
+        return {
+            appId: process.env.SHENGWANG_APP_ID || '',
+            appCertificate: process.env.SHENGWANG_APP_CERTIFICATE || '',
+        }
+    }
+    return {
+        appId: process.env.AGORA_APP_ID || '',
+        appCertificate: process.env.AGORA_APP_CERTIFICATE || '',
+    }
+}
+
 export function generateRtcToken(
     channelName: string,
     uid: number,
+    platform: 'agora' | 'shengwang' = 'agora',
     role: 'publisher' | 'subscriber' = 'publisher',
     expireTimeInSeconds: number = 3600
 ): string {
-    // 在函数内部读取环境变量，确保 Next.js 运行时已加载
-    const appId = process.env.AGORA_APP_ID || ''
-    const appCertificate = process.env.AGORA_APP_CERTIFICATE || ''
+    const { appId, appCertificate } = getCredentials(platform)
 
     if (!appId || !appCertificate) {
-        console.error('Missing AGORA_APP_ID or AGORA_APP_CERTIFICATE')
-        throw new Error('Agora credentials not configured')
+        console.error(`Missing credentials for platform: ${platform}`)
+        throw new Error(`${platform} credentials not configured`)
     }
 
     const currentTime = Math.floor(Date.now() / 1000)
@@ -33,6 +46,7 @@ export function generateRtcToken(
     return token
 }
 
-export function getAppId(): string {
-    return process.env.AGORA_APP_ID || ''
+export function getAppId(platform: 'agora' | 'shengwang' = 'agora'): string {
+    const { appId } = getCredentials(platform)
+    return appId
 }
