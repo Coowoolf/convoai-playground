@@ -218,7 +218,28 @@ export async function POST(request: NextRequest) {
             },
         }
 
-        log('AGORA_REQUEST', { url: apiUrl, llm: config.llm.model, tts: ttsConfig.vendor })
+        // 记录完整请求体（隐藏敏感信息）
+        log('AGORA_REQUEST_FULL', {
+            url: apiUrl,
+            body: {
+                ...requestBody,
+                properties: {
+                    ...requestBody.properties,
+                    token: requestBody.properties.token?.substring(0, 20) + '...',
+                    llm: {
+                        ...requestBody.properties.llm,
+                        api_key: requestBody.properties.llm.api_key?.substring(0, 10) + '...',
+                    },
+                    tts: {
+                        ...requestBody.properties.tts,
+                        params: {
+                            ...requestBody.properties.tts.params,
+                            key: (requestBody.properties.tts.params as Record<string, unknown>)?.key ? String((requestBody.properties.tts.params as Record<string, unknown>).key).substring(0, 10) + '...' : undefined,
+                        }
+                    }
+                }
+            }
+        })
 
         const response = await fetch(apiUrl, {
             method: 'POST',
