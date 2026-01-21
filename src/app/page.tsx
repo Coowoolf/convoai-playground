@@ -17,9 +17,9 @@ export default function Home() {
   const [locale, setLocale] = useState<Locale>('zh')
 
   // 对话配置
-  const [platform, setPlatform] = useState<'agora' | 'shengwang'>('agora')  // 平台选择
+  const [platform, setPlatform] = useState<'agora' | 'shengwang'>('shengwang')  // 默认声网中国版
   const [language, setLanguage] = useState('zh-CN')
-  const [ttsVendor, setTtsVendor] = useState('elevenlabs')  // TTS 供应商
+  const [ttsVendor, setTtsVendor] = useState('minimax')  // 默认 MiniMax
   const [systemPrompt, setSystemPrompt] = useState(
     '你是一个友好的AI语音助手。请用简洁自然的语言回答问题，语速适中，像朋友一样交流。'
   )
