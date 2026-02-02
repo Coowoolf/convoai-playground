@@ -1,10 +1,7 @@
 import { describe, it, expect } from 'vitest'
+import { generateChannelName } from '@/utils/channel'
 
 describe('Channel Name Generation', () => {
-  function generateChannelName(prefix: string = 'aura'): string {
-    return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-  }
-
   it('should generate unique channel names', () => {
     const names = new Set<string>()
     for (let i = 0; i < 100; i++) {

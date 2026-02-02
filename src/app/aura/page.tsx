@@ -4,6 +4,8 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import type AgoraRTC from 'agora-rtc-sdk-ng'
 import type { IAgoraRTCClient, IMicrophoneAudioTrack, IRemoteAudioTrack } from 'agora-rtc-sdk-ng'
 import { generateUids } from '@/utils/uid'
+import { isPasswordConfigured, validatePassword } from '@/utils/password'
+import { generateChannelName } from '@/utils/channel'
 
 type Agent = 'aura' | 'lix'
 type Status = 'idle' | 'connecting' | 'connected' | 'talking' | 'error'
@@ -30,9 +32,7 @@ export default function AuraPage() {
   const localTrackRef = useRef<IMicrophoneAudioTrack | null>(null)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
 
-  // P0 修复：移除硬编码密码，必须配置环境变量
-  const VOICE_PASSWORD = process.env.NEXT_PUBLIC_VOICE_PASSWORD
-  const isPasswordConfigured = !!VOICE_PASSWORD
+  // 使用工具函数检查密码配置
 
   // 添加日志
   const addLog = useCallback((type: LogEntry['type'], message: string) => {
@@ -74,11 +74,11 @@ export default function AuraPage() {
 
   // 登录
   const handleLogin = () => {
-    if (!isPasswordConfigured) {
+    if (!isPasswordConfigured()) {
       alert('密码未配置，请联系管理员')
       return
     }
-    if (password === VOICE_PASSWORD) {
+    if (validatePassword(password)) {
       setAuthenticated(true)
       localStorage.setItem('aura_voice_auth', 'true')
       addLog('success', '登录成功')
@@ -107,8 +107,8 @@ export default function AuraPage() {
       const client = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' })
       clientRef.current = client
 
-      // 生成频道名和 UID (使用 generateUids 确保不冲突)
-      const channelName = `aura-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+      // 生成频道名和 UID (使用工具函数)
+      const channelName = generateChannelName('aura')
       const { userUid, agentUid } = generateUids()
 
       addLog('info', `频道: ${channelName}`)
