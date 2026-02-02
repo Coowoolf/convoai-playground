@@ -325,7 +325,23 @@ export default function Home() {
 
       {/* Header */}
       <header className="header">
-        <h1 className="header-title">{t(locale, 'header.title')}</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <h1 className="header-title">{t(locale, 'header.title')}</h1>
+          <a 
+            href="/aura" 
+            style={{ 
+              fontSize: '0.875rem', 
+              padding: '0.25rem 0.75rem', 
+              background: 'linear-gradient(to right, #9333ea, #ec4899)', 
+              borderRadius: '9999px', 
+              color: 'white',
+              textDecoration: 'none',
+              fontWeight: '500'
+            }}
+          >
+            🎙️ Aura/Lix
+          </a>
+        </div>
         <div className="header-controls">
           {/* 1. 平台选择 */}
           <div className="select-wrapper">
