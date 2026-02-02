@@ -154,7 +154,8 @@ export async function POST(request: NextRequest) {
             channelName,
             agentUid,
             userUid,
-            userToken,
+            token,  // 前端发送 token
+            userToken,  // 兼容旧字段名
             language = 'zh-CN',
             systemPrompt,
             temperature = 0.7,
@@ -164,6 +165,9 @@ export async function POST(request: NextRequest) {
             ttsVendor,
             minimaxVoice = 'femalegirl03',  // MiniMax 音色
         } = body
+        
+        // 兼容 token 和 userToken 两种字段名
+        const agentToken = token || userToken
 
         if (!channelName || !agentUid || !userUid) {
             return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 })
@@ -228,7 +232,7 @@ export async function POST(request: NextRequest) {
             name: `convoai-${Date.now()}`,
             properties: {
                 channel: channelName,
-                token: userToken,
+                token: agentToken,
                 agent_rtc_uid: String(agentUid),
                 remote_rtc_uids: [String(userUid)],
                 idle_timeout: 120,
