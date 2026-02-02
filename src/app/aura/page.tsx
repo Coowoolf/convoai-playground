@@ -20,13 +20,13 @@ export default function AuraPage() {
   // 认证状态
   const [authenticated, setAuthenticated] = useState(false)
   const [password, setPassword] = useState('')
-  
+
   // 通话状态
   const [agent, setAgent] = useState<Agent>('aura')
   const [status, setStatus] = useState<Status>('idle')
   const [duration, setDuration] = useState(0)
   const [logs, setLogs] = useState<LogEntry[]>([])
-  
+
   // Agora 相关
   const clientRef = useRef<IAgoraRTCClient | null>(null)
   const localTrackRef = useRef<IMicrophoneAudioTrack | null>(null)
@@ -158,7 +158,7 @@ export default function AuraPage() {
 
       // 启动 Agent
       addLog('info', '正在启动 AI Agent...')
-      
+
       const agentTokenRes = await fetch('/api/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -189,7 +189,7 @@ export default function AuraPage() {
           llmProvider: 'openai',
           ttsProvider: 'elevenlabs',
           voiceId: 'pFZP5JQG7iQjIQuC4Bku', // Lily
-          systemPrompt: agent === 'aura' 
+          systemPrompt: agent === 'aura'
             ? 'You are Aura, Colin\'s AI CTO assistant. Be helpful, concise, and technical.'
             : 'You are Lix, Colin\'s AI VP of Engineering. Help with code review and technical research.',
           // 自定义 LLM URL - 使用 EC2 Voice Adapter
@@ -235,7 +235,7 @@ export default function AuraPage() {
     } catch (error) {
       console.error('End call error:', error)
     }
-    
+
     setStatus('idle')
     setDuration(0)
   }
@@ -247,15 +247,55 @@ export default function AuraPage() {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
   }
 
-  // 未认证界面
+  // 获取状态类名
+  const getStatusClass = () => {
+    switch (status) {
+      case 'idle': return 'aura-status-idle'
+      case 'connecting': return 'aura-status-connecting'
+      case 'connected':
+      case 'talking': return 'aura-status-connected'
+      case 'error': return 'aura-status-error'
+      default: return 'aura-status-idle'
+    }
+  }
+
+  // 获取状态文本
+  const getStatusText = () => {
+    switch (status) {
+      case 'idle': return '未连接'
+      case 'connecting': return '连接中...'
+      case 'connected': return '已连接'
+      case 'talking': return '通话中'
+      case 'error': return '连接失败'
+      default: return '未连接'
+    }
+  }
+
+  // 获取日志类名
+  const getLogClass = (type: LogEntry['type']) => {
+    switch (type) {
+      case 'success': return 'aura-log-success'
+      case 'error': return 'aura-log-error'
+      case 'agent': return 'aura-log-agent'
+      default: return 'aura-log-info'
+    }
+  }
+
+  // 未认证界面 - 使用统一设计系统
   if (!authenticated) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center">
-        <div className="bg-gray-800/50 backdrop-blur-lg rounded-2xl p-8 w-full max-w-md border border-purple-500/30">
-          <h1 className="text-3xl font-bold text-center mb-6 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+      <div className="app-container" style={{ justifyContent: 'center', alignItems: 'center' }}>
+        {/* 浮动装饰 */}
+        <div className="floating-shape shape-1" />
+        <div className="floating-shape shape-2" />
+        <div className="floating-shape shape-3" />
+        <div className="floating-shape shape-4" />
+
+        <div className="aura-login-card">
+          <h1 className="header-title" style={{ textAlign: 'center', marginBottom: '8px' }}>
             🔒 Aura/Lix Voice
           </h1>
-          <p className="text-gray-400 text-center mb-6">
+          <p style={{ color: 'var(--text-muted)', textAlign: 'center', marginBottom: '24px' }}>
             请输入密码访问语音通话功能
           </p>
           <input
@@ -264,11 +304,11 @@ export default function AuraPage() {
             value={password}
             onChange={e => setPassword(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleLogin()}
-            className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 mb-4"
+            className="aura-login-input"
           />
-          <button 
+          <button
             onClick={handleLogin}
-            className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity"
+            className="aura-login-btn"
           >
             登录
           </button>
@@ -277,53 +317,53 @@ export default function AuraPage() {
     )
   }
 
-  // 已认证界面
+  // 已认证界面 - 使用统一设计系统
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 p-4">
+    <div className="aura-container">
+      {/* 浮动装饰 */}
+      <div className="floating-shape shape-1" />
+      <div className="floating-shape shape-2" />
+      <div className="floating-shape shape-3" />
+      <div className="floating-shape shape-4" />
+
       {/* 顶部导航 */}
-      <header className="flex justify-between items-center mb-8">
-        <div className="flex items-center gap-4">
-          <a href="/" className="text-gray-400 hover:text-white">← Playground</a>
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+      <header className="aura-header">
+        <div className="aura-header-left">
+          <a href="/" className="aura-back-link">← Playground</a>
+          <h1 className="header-title">
             🎙️ Voice Call
           </h1>
         </div>
-        <button 
+        <button
           onClick={handleLogout}
-          className="text-gray-400 hover:text-white text-sm"
+          className="aura-logout-btn"
         >
           登出
         </button>
       </header>
 
-      <div className="max-w-4xl mx-auto grid md:grid-cols-2 gap-6">
+      <div className="aura-main">
         {/* 左侧: 控制面板 */}
-        <div className="bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-purple-500/30">
-          <h2 className="text-xl font-semibold text-white mb-6">控制面板</h2>
+        <div className="card">
+          <h2 className="card-title">控制面板</h2>
 
           {/* Agent 选择 */}
-          <div className="mb-6">
-            <label className="block text-gray-400 mb-2">对话对象</label>
-            <div className="flex gap-2">
+          <div style={{ marginBottom: '24px' }}>
+            <label style={{ display: 'block', color: 'var(--text-secondary)', marginBottom: '8px', fontSize: '0.875rem' }}>
+              对话对象
+            </label>
+            <div style={{ display: 'flex', gap: '8px' }}>
               <button
                 onClick={() => setAgent('aura')}
                 disabled={status !== 'idle'}
-                className={`flex-1 py-3 rounded-lg font-semibold transition-all ${
-                  agent === 'aura'
-                    ? 'bg-purple-600 text-white'
-                    : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
-                } ${status !== 'idle' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                className={`aura-agent-btn ${agent === 'aura' ? 'active' : ''}`}
               >
                 ⚡ Aura (CTO)
               </button>
               <button
                 onClick={() => setAgent('lix')}
                 disabled={status !== 'idle'}
-                className={`flex-1 py-3 rounded-lg font-semibold transition-all ${
-                  agent === 'lix'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
-                } ${status !== 'idle' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                className={`aura-agent-btn ${agent === 'lix' ? 'active-lix' : ''}`}
               >
                 🔧 Lix (VP Eng)
               </button>
@@ -331,60 +371,46 @@ export default function AuraPage() {
           </div>
 
           {/* 状态显示 */}
-          <div className="mb-6 text-center">
-            <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full ${
-              status === 'idle' ? 'bg-gray-700 text-gray-400' :
-              status === 'connecting' ? 'bg-yellow-600/20 text-yellow-400' :
-              status === 'connected' || status === 'talking' ? 'bg-green-600/20 text-green-400' :
-              'bg-red-600/20 text-red-400'
-            }`}>
-              <span className={`w-2 h-2 rounded-full ${
-                status === 'idle' ? 'bg-gray-400' :
-                status === 'connecting' ? 'bg-yellow-400 animate-pulse' :
-                status === 'connected' || status === 'talking' ? 'bg-green-400 animate-pulse' :
-                'bg-red-400'
-              }`} />
-              {status === 'idle' && '未连接'}
-              {status === 'connecting' && '连接中...'}
-              {status === 'connected' && '已连接'}
-              {status === 'talking' && '通话中'}
-              {status === 'error' && '连接失败'}
+          <div style={{ marginBottom: '24px', textAlign: 'center' }}>
+            <div className={`aura-status-badge ${getStatusClass()}`}>
+              <span className="aura-status-dot" />
+              {getStatusText()}
             </div>
-            
+
             {(status === 'connected' || status === 'talking') && (
-              <div className="mt-2 text-2xl font-mono text-white">
+              <div className="aura-duration">
                 {formatDuration(duration)}
               </div>
             )}
           </div>
 
           {/* 通话按钮 */}
-          <div className="flex justify-center">
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
             {status === 'idle' || status === 'error' ? (
               <button
                 onClick={startCall}
-                className="w-24 h-24 rounded-full bg-gradient-to-r from-green-500 to-emerald-600 text-white text-4xl hover:scale-105 transition-transform shadow-lg shadow-green-500/30"
+                className="aura-call-btn aura-call-btn-start"
               >
                 🎤
               </button>
             ) : status === 'connecting' ? (
               <button
                 disabled
-                className="w-24 h-24 rounded-full bg-yellow-600 text-white text-4xl opacity-50 cursor-not-allowed"
+                className="aura-call-btn aura-call-btn-connecting"
               >
                 ⏳
               </button>
             ) : (
               <button
                 onClick={endCall}
-                className="w-24 h-24 rounded-full bg-gradient-to-r from-red-500 to-rose-600 text-white text-4xl hover:scale-105 transition-transform shadow-lg shadow-red-500/30"
+                className="aura-call-btn aura-call-btn-end"
               >
                 📴
               </button>
             )}
           </div>
 
-          <p className="text-center text-gray-500 mt-4 text-sm">
+          <p style={{ textAlign: 'center', color: 'var(--text-muted)', marginTop: '16px', fontSize: '0.875rem' }}>
             {status === 'idle' && '点击开始通话'}
             {status === 'connecting' && '正在建立连接...'}
             {(status === 'connected' || status === 'talking') && '点击结束通话'}
@@ -393,29 +419,24 @@ export default function AuraPage() {
         </div>
 
         {/* 右侧: 日志 */}
-        <div className="bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-purple-500/30">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold text-white">📋 通话日志</h2>
+        <div className="card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h2 className="card-title" style={{ margin: 0 }}>📋 通话日志</h2>
             <button
               onClick={() => setLogs([])}
-              className="text-gray-500 hover:text-white text-sm"
+              className="aura-logout-btn"
             >
               清空
             </button>
           </div>
 
-          <div className="h-80 overflow-y-auto space-y-2 font-mono text-sm">
+          <div className="aura-log-panel">
             {logs.length === 0 ? (
-              <p className="text-gray-500">开始通话后日志将显示在这里...</p>
+              <p style={{ color: 'var(--text-muted)' }}>开始通话后日志将显示在这里...</p>
             ) : (
               logs.map((log, i) => (
-                <div key={i} className={`flex gap-2 ${
-                  log.type === 'success' ? 'text-green-400' :
-                  log.type === 'error' ? 'text-red-400' :
-                  log.type === 'agent' ? 'text-purple-400' :
-                  'text-gray-400'
-                }`}>
-                  <span className="text-gray-600">[{log.time}]</span>
+                <div key={i} className={`aura-log-entry ${getLogClass(log.type)}`}>
+                  <span className="aura-log-time">[{log.time}]</span>
                   <span>{log.message}</span>
                 </div>
               ))
@@ -425,7 +446,7 @@ export default function AuraPage() {
       </div>
 
       {/* 底部说明 */}
-      <footer className="max-w-4xl mx-auto mt-8 text-center text-gray-500 text-sm">
+      <footer className="aura-footer">
         <p>AURALIX Voice Call · Powered by Agora Conversational AI</p>
       </footer>
     </div>

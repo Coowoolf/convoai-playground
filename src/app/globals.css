@@ -611,3 +611,315 @@ body {
   top: 30%;
   left: 8%;
 }
+
+/* ============================================
+   Aura Voice Page - 统一设计风格
+   ============================================ */
+
+/* Aura 页面容器 */
+.aura-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-lg);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Aura 登录卡片 */
+.aura-login-card {
+  background: var(--bg-card);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+  padding: var(--spacing-xl);
+  width: 100%;
+  max-width: 420px;
+}
+
+/* Aura 登录输入框 */
+.aura-login-input {
+  width: 100%;
+  padding: 14px 18px;
+  border: 2px solid transparent;
+  border-radius: var(--card-radius-sm);
+  font-size: 1rem;
+  background: var(--bg-cream-warm);
+  color: var(--text-primary);
+  transition: var(--transition-fast);
+  margin-bottom: var(--spacing-md);
+}
+
+.aura-login-input:focus {
+  outline: none;
+  border-color: #A78BFA;
+  box-shadow: 0 0 0 4px rgba(167, 139, 250, 0.15);
+}
+
+.aura-login-input::placeholder {
+  color: var(--text-muted);
+}
+
+/* Aura 登录按钮 */
+.aura-login-btn {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: var(--card-radius-sm);
+  background: var(--gradient-purple);
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--btn-shadow);
+  transition: var(--transition-normal);
+}
+
+.aura-login-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(167, 139, 250, 0.4);
+}
+
+.aura-login-btn:active {
+  transform: translateY(0);
+}
+
+/* Aura Header */
+.aura-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-lg);
+}
+
+.aura-header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.aura-back-link {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: var(--transition-fast);
+}
+
+.aura-back-link:hover {
+  color: var(--text-primary);
+}
+
+.aura-logout-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.aura-logout-btn:hover {
+  color: var(--text-primary);
+}
+
+/* Aura 主内容布局 */
+.aura-main {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-lg);
+  flex: 1;
+}
+
+@media (max-width: 768px) {
+  .aura-main {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Agent 选择按钮 */
+.aura-agent-btn {
+  flex: 1;
+  padding: 14px;
+  border: none;
+  border-radius: var(--card-radius-sm);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-normal);
+  background: var(--bg-cream);
+  color: var(--text-secondary);
+}
+
+.aura-agent-btn:hover:not(:disabled) {
+  background: var(--bg-cream-warm);
+  transform: translateY(-1px);
+}
+
+.aura-agent-btn.active {
+  background: var(--gradient-purple);
+  color: white;
+  box-shadow: var(--btn-shadow);
+}
+
+.aura-agent-btn.active-lix {
+  background: var(--gradient-blue);
+  color: white;
+  box-shadow: var(--btn-shadow);
+}
+
+.aura-agent-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* 状态徽章 */
+.aura-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.aura-status-idle {
+  background: var(--bg-cream);
+  color: var(--text-muted);
+}
+
+.aura-status-connecting {
+  background: rgba(251, 146, 60, 0.15);
+  color: #FB923C;
+}
+
+.aura-status-connected {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10B981;
+}
+
+.aura-status-error {
+  background: rgba(239, 68, 68, 0.15);
+  color: #EF4444;
+}
+
+.aura-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.aura-status-idle .aura-status-dot {
+  background: var(--text-muted);
+}
+
+.aura-status-connecting .aura-status-dot {
+  background: #FB923C;
+  animation: pulse 2s infinite;
+}
+
+.aura-status-connected .aura-status-dot {
+  background: #10B981;
+  animation: pulse 2s infinite;
+}
+
+.aura-status-error .aura-status-dot {
+  background: #EF4444;
+}
+
+/* 通话按钮 */
+.aura-call-btn {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  border: none;
+  font-size: 2.5rem;
+  cursor: pointer;
+  transition: var(--transition-normal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.aura-call-btn-start {
+  background: linear-gradient(135deg, #10B981, #059669);
+  color: white;
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4);
+}
+
+.aura-call-btn-start:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 24px rgba(16, 185, 129, 0.5);
+}
+
+.aura-call-btn-end {
+  background: linear-gradient(135deg, #EF4444, #DC2626);
+  color: white;
+  box-shadow: 0 4px 16px rgba(239, 68, 68, 0.4);
+}
+
+.aura-call-btn-end:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 24px rgba(239, 68, 68, 0.5);
+}
+
+.aura-call-btn-connecting {
+  background: var(--bg-cream);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+/* 通话时长 */
+.aura-duration {
+  font-size: 1.75rem;
+  font-family: 'SF Mono', 'Monaco', monospace;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-top: var(--spacing-sm);
+}
+
+/* 日志面板 */
+.aura-log-panel {
+  height: 320px;
+  overflow-y: auto;
+  padding: var(--spacing-md);
+  background: var(--bg-cream-warm);
+  border-radius: var(--card-radius-sm);
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-size: 0.8rem;
+  line-height: 1.6;
+}
+
+.aura-log-entry {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-xs);
+}
+
+.aura-log-time {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.aura-log-success {
+  color: #10B981;
+}
+
+.aura-log-error {
+  color: #EF4444;
+}
+
+.aura-log-agent {
+  color: #A78BFA;
+}
+
+.aura-log-info {
+  color: var(--text-secondary);
+}
+
+/* Aura Footer */
+.aura-footer {
+  margin-top: var(--spacing-xl);
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}

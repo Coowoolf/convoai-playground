@@ -44,9 +44,9 @@ describe('AuraPage Component', () => {
     })
 
     it('should show alert for wrong password', () => {
-      const alertMock = vi.spyOn(window, 'alert').mockImplementation(() => {})
+      const alertMock = vi.spyOn(window, 'alert').mockImplementation(() => { })
       render(<AuraPage />)
-      
+
       const input = screen.getByPlaceholderText('输入密码')
       const button = screen.getByText('登录')
 
@@ -60,7 +60,7 @@ describe('AuraPage Component', () => {
     it('should restore auth from localStorage', () => {
       localStorageMock.getItem.mockReturnValue('true')
       render(<AuraPage />)
-      
+
       // Should show main interface, not login
       expect(screen.queryByPlaceholderText('输入密码')).not.toBeInTheDocument()
       expect(screen.getByText('🎙️ Voice Call')).toBeInTheDocument()
@@ -81,7 +81,8 @@ describe('AuraPage Component', () => {
     it('should have Aura selected by default', () => {
       render(<AuraPage />)
       const auraButton = screen.getByText(/Aura/)
-      expect(auraButton.closest('button')).toHaveClass('bg-purple-600')
+      expect(auraButton.closest('button')).toHaveClass('aura-agent-btn')
+      expect(auraButton.closest('button')).toHaveClass('active')
     })
   })
 
@@ -120,7 +121,7 @@ describe('AuraPage Component', () => {
       render(<AuraPage />)
       const logoutButton = screen.getByText('登出')
       fireEvent.click(logoutButton)
-      
+
       expect(localStorageMock.removeItem).toHaveBeenCalledWith('aura_voice_auth')
     })
   })
