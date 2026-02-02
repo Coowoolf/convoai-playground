@@ -29,7 +29,9 @@ export default function AuraPage() {
   const localTrackRef = useRef<IMicrophoneAudioTrack | null>(null)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
 
-  const VOICE_PASSWORD = process.env.NEXT_PUBLIC_VOICE_PASSWORD || 'auralix2026'
+  // P0 修复：移除硬编码密码，必须配置环境变量
+  const VOICE_PASSWORD = process.env.NEXT_PUBLIC_VOICE_PASSWORD
+  const isPasswordConfigured = !!VOICE_PASSWORD
 
   // 添加日志
   const addLog = useCallback((type: LogEntry['type'], message: string) => {
@@ -71,6 +73,10 @@ export default function AuraPage() {
 
   // 登录
   const handleLogin = () => {
+    if (!isPasswordConfigured) {
+      alert('密码未配置，请联系管理员')
+      return
+    }
     if (password === VOICE_PASSWORD) {
       setAuthenticated(true)
       localStorage.setItem('aura_voice_auth', 'true')
@@ -100,10 +106,13 @@ export default function AuraPage() {
       const client = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' })
       clientRef.current = client
 
-      // 生成频道名和 UID
+      // 生成频道名和 UID (P1 修复：防止 UID 冲突)
       const channelName = `aura-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
       const userUid = Math.floor(Math.random() * 100000)
-      const agentUid = Math.floor(Math.random() * 100000)
+      let agentUid = Math.floor(Math.random() * 100000)
+      while (agentUid === userUid) {
+        agentUid = Math.floor(Math.random() * 100000)
+      }
 
       addLog('info', `频道: ${channelName}`)
 
@@ -211,7 +220,7 @@ export default function AuraPage() {
     }
   }
 
-  // 结束通话
+  // 结束通话 (P2 修复：移除事件监听器)
   const endCall = async () => {
     try {
       if (localTrackRef.current) {
@@ -220,6 +229,7 @@ export default function AuraPage() {
       }
 
       if (clientRef.current) {
+        clientRef.current.removeAllListeners()
         await clientRef.current.leave()
         clientRef.current = null
       }
