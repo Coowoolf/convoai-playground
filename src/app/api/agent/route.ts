@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-// 日志
+// 日志 - 存储最近 200 条
 const logs: Array<{ time: string; type: string; data: unknown }> = []
 function log(type: string, data: unknown) {
     logs.push({ time: new Date().toISOString(), type, data })
-    if (logs.length > 50) logs.shift()
+    if (logs.length > 200) logs.shift()
     console.log(`[${type}]`, JSON.stringify(data, null, 2))
 }
 
@@ -176,7 +176,19 @@ export async function POST(request: NextRequest) {
 
         // 选择 LLM 配置
         let llmConfig
-        if (isShengwang) {
+        let useCustomLlm = false
+        const customLlmUrl = body.customLlmUrl || process.env.NEXT_PUBLIC_VOICE_ADAPTER_URL
+        
+        if (customLlmUrl) {
+            // 使用自定义 LLM URL (Voice Adapter)
+            useCustomLlm = true
+            llmConfig = {
+                name: 'OpenClaw Voice Adapter',
+                url: customLlmUrl,
+                getApiKey: () => 'not-required',
+                model: 'openclaw',
+            }
+        } else if (isShengwang) {
             llmConfig = SHENGWANG_CONFIG.llm
         } else {
             // Agora 国际版: 根据 llmProvider 选择 OpenAI 或 OpenRouter
@@ -187,7 +199,8 @@ export async function POST(request: NextRequest) {
             platform,
             name: config.name,
             llm: llmConfig.name,
-            llmProvider: isShengwang ? 'aliyun' : llmProvider,
+            llmProvider: useCustomLlm ? 'custom-voice-adapter' : (isShengwang ? 'aliyun' : llmProvider),
+            customLlmUrl: useCustomLlm ? customLlmUrl : undefined,
             appIdLen: credentials.appId.length,
         })
 
