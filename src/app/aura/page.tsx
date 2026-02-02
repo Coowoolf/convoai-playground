@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import type AgoraRTC from 'agora-rtc-sdk-ng'
 import type { IAgoraRTCClient, IMicrophoneAudioTrack, IRemoteAudioTrack } from 'agora-rtc-sdk-ng'
+import { generateUids } from '@/utils/uid'
 
 type Agent = 'aura' | 'lix'
 type Status = 'idle' | 'connecting' | 'connected' | 'talking' | 'error'
@@ -106,13 +107,9 @@ export default function AuraPage() {
       const client = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' })
       clientRef.current = client
 
-      // 生成频道名和 UID (P1 修复：防止 UID 冲突)
+      // 生成频道名和 UID (使用 generateUids 确保不冲突)
       const channelName = `aura-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-      const userUid = Math.floor(Math.random() * 100000)
-      let agentUid = Math.floor(Math.random() * 100000)
-      while (agentUid === userUid) {
-        agentUid = Math.floor(Math.random() * 100000)
-      }
+      const { userUid, agentUid } = generateUids()
 
       addLog('info', `频道: ${channelName}`)
 
