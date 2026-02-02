@@ -185,7 +185,7 @@ export default function AuraPage() {
           userUid,
           token: agentTokenData.token,
           platform: 'agora',
-          language: 'en',
+          language: 'zh-CN',
           llmProvider: 'openai',
           ttsProvider: 'elevenlabs',
           voiceId: 'pFZP5JQG7iQjIQuC4Bku', // Lily
