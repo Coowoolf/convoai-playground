@@ -192,8 +192,8 @@ export default function AuraPage() {
           systemPrompt: agent === 'aura' 
             ? 'You are Aura, Colin\'s AI CTO assistant. Be helpful, concise, and technical.'
             : 'You are Lix, Colin\'s AI VP of Engineering. Help with code review and technical research.',
-          // 自定义 LLM URL (待配置)
-          customLlmUrl: process.env.NEXT_PUBLIC_VOICE_ADAPTER_URL,
+          // 自定义 LLM URL - 使用 EC2 Voice Adapter
+          customLlmUrl: process.env.NEXT_PUBLIC_VOICE_ADAPTER_URL || 'http://52.74.133.186:3456/v1/chat/completions',
           customLlmHeaders: {
             'X-Agent': agent,
             'X-Session-Id': channelName
