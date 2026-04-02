@@ -75,11 +75,7 @@ export default function Dashboard() {
       const json = await res.json()
       setData(json)
       setLastUpdate(new Date().toLocaleTimeString())
-    } catch {
-      // ignore
-    } finally {
-      setLoading(false)
-    }
+    } catch { /* */ } finally { setLoading(false) }
   }, [])
 
   useEffect(() => {
@@ -100,117 +96,94 @@ export default function Dashboard() {
   const maxFunnel = Math.max(...FUNNEL.map(s => t[s.key] ?? 0), 1)
   const timing = data?.timing
 
-  return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #08080c 0%, #0c0c14 100%)', color: '#e4e4e7', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
+  if (loading) {
+    return (
+      <div className="page"><div className="container" style={{ textAlign: 'center', paddingTop: 120 }}>
+        <div style={{ fontSize: 32 }}>⚡🐦</div>
+        <div style={{ color: '#52525b', marginTop: 12 }}>Loading...</div>
+      </div></div>
+    )
+  }
 
-      {/* ── Header ──────────────────────────────────────────── */}
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '32px 24px 0' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <h1 style={{ fontSize: 28, fontWeight: 700, margin: 0, background: 'linear-gradient(135deg, #60a5fa, #a78bfa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-              ⚡🐦 ConvoAI
-            </h1>
-            <span style={{ padding: '4px 12px', borderRadius: 20, background: '#10b98120', color: '#10b981', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981', display: 'inline-block', animation: 'pulse 2s infinite' }} />
-              Live
-            </span>
+  return (
+    <div className="page">
+      <div className="container">
+
+        {/* Header */}
+        <div className="header">
+          <div className="header-left">
+            <h1 className="title">⚡🐦 ConvoAI</h1>
+            <span className="live-badge"><span className="live-dot" />Live</span>
           </div>
-          <div style={{ fontSize: 13, color: '#52525b' }}>
-            Updated {lastUpdate || '...'}
-          </div>
+          <div className="updated">Updated {lastUpdate || '...'}</div>
         </div>
 
-        {/* ── Metric Cards ──────────────────────────────────── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 32 }}>
+        {/* Metric Cards */}
+        <div className="cards">
           {[
             { label: 'Total Installs', value: fmt(installs), sub: `+${todayCount('install')} today`, color: '#60a5fa' },
             { label: 'Completion Rate', value: `${completionRate}%`, sub: `${fmt(completed)} completed`, color: '#10b981' },
-            { label: 'Active Today', value: fmt(todayCount('install') + todayCount('qs_start') + todayCount('agent_start') + todayCount('agent_join')), sub: 'installs + starts + joins', color: '#a78bfa' },
-            { label: 'Top Error', value: topError?.[0] ?? 'None', sub: topError ? `${topError[1]} occurrences` : 'No errors', color: topError ? '#ef4444' : '#52525b' },
+            { label: 'Active Today', value: fmt(todayCount('install') + todayCount('qs_start') + todayCount('agent_start') + todayCount('agent_join')), sub: 'installs + starts', color: '#a78bfa' },
+            { label: 'Top Error', value: topError?.[0]?.slice(0, 16) ?? 'None', sub: topError ? `${topError[1]}x` : 'No errors', color: topError ? '#ef4444' : '#52525b' },
           ].map((card, i) => (
-            <div key={i} style={{
-              background: '#111118',
-              border: '1px solid #1e1e2e',
-              borderRadius: 12,
-              padding: '20px 24px',
-              position: 'relative',
-              overflow: 'hidden',
-            }}>
-              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, ${card.color}, transparent)` }} />
-              <div style={{ fontSize: 11, fontWeight: 600, color: '#71717a', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>{card.label}</div>
-              <div style={{ fontSize: 28, fontWeight: 700, color: '#fafafa', marginBottom: 4 }}>{card.value}</div>
-              <div style={{ fontSize: 12, color: '#52525b' }}>{card.sub}</div>
+            <div key={i} className="card">
+              <div className="card-accent" style={{ background: `linear-gradient(90deg, ${card.color}, transparent)` }} />
+              <div className="card-label">{card.label}</div>
+              <div className="card-value">{card.value}</div>
+              <div className="card-sub">{card.sub}</div>
             </div>
           ))}
         </div>
 
-        {/* ── Main Grid ─────────────────────────────────────── */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 16, marginBottom: 32 }}>
-
-          {/* ── Funnel ────────────────────────────────────────── */}
-          <div style={{ background: '#111118', border: '1px solid #1e1e2e', borderRadius: 12, padding: 28 }}>
-            <h2 style={{ fontSize: 16, fontWeight: 600, margin: '0 0 4px', color: '#fafafa' }}>Quickstart Funnel</h2>
-            <p style={{ fontSize: 13, color: '#52525b', margin: '0 0 24px' }}>User progression through the quickstart flow</p>
-
+        {/* Funnel + Sidebar */}
+        <div className="main-grid">
+          <div className="panel">
+            <h2 className="panel-title">Quickstart Funnel</h2>
+            <p className="panel-sub">User progression through the quickstart flow</p>
             {FUNNEL.map((step, i) => {
               const count = t[step.key] ?? 0
               const prev = i > 0 ? (t[FUNNEL[i - 1].key] ?? 0) : 0
               const rate = i > 0 ? pct(count, prev) : ''
               const barWidth = maxFunnel > 0 ? Math.max((count / maxFunnel) * 100, count > 0 ? 3 : 0.5) : 0.5
-              const barColor = i === FUNNEL.length - 1
-                ? '#10b981'
-                : i < 3 ? '#60a5fa' : i < 6 ? '#818cf8' : '#a78bfa'
-
+              const barColor = i === FUNNEL.length - 1 ? '#10b981' : i < 3 ? '#60a5fa' : i < 6 ? '#818cf8' : '#a78bfa'
               return (
-                <div key={step.key} style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
-                  <div style={{ width: 28, fontSize: 16, textAlign: 'center', flexShrink: 0 }}>{step.icon}</div>
-                  <div style={{ width: 80, fontSize: 13, color: '#a1a1aa', flexShrink: 0 }}>{step.label}</div>
-                  <div style={{ width: 40, fontSize: 11, color: i > 0 && count < prev * 0.7 ? '#ef4444' : '#52525b', textAlign: 'right', flexShrink: 0 }}>
-                    {rate}
+                <div key={step.key} className="funnel-row">
+                  <div className="funnel-icon">{step.icon}</div>
+                  <div className="funnel-label">{step.label}</div>
+                  <div className="funnel-rate" style={{ color: i > 0 && count < prev * 0.7 ? '#ef4444' : '#52525b' }}>{rate}</div>
+                  <div className="funnel-bar-bg">
+                    <div className="funnel-bar" style={{ width: `${barWidth}%`, background: `linear-gradient(90deg, ${barColor}, ${barColor}80)` }} />
                   </div>
-                  <div style={{ flex: 1, margin: '0 12px', height: 20, background: '#1a1a24', borderRadius: 4, overflow: 'hidden' }}>
-                    <div style={{
-                      width: `${barWidth}%`,
-                      height: '100%',
-                      background: `linear-gradient(90deg, ${barColor}, ${barColor}80)`,
-                      borderRadius: 4,
-                      transition: 'width 0.6s ease',
-                    }} />
-                  </div>
-                  <div style={{ width: 48, textAlign: 'right', fontSize: 14, fontWeight: 600, color: '#fafafa', fontVariantNumeric: 'tabular-nums' }}>
-                    {fmt(count)}
-                  </div>
+                  <div className="funnel-count">{fmt(count)}</div>
                 </div>
               )
             })}
           </div>
 
-          {/* ── Right Column ──────────────────────────────────── */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-
+          <div className="sidebar">
             {/* Agent Events */}
-            <div style={{ background: '#111118', border: '1px solid #1e1e2e', borderRadius: 12, padding: 24 }}>
-              <h3 style={{ fontSize: 14, fontWeight: 600, color: '#fafafa', margin: '0 0 16px' }}>Agent Events</h3>
+            <div className="panel">
+              <h3 className="panel-title-sm">Agent Events</h3>
               {['agent_start', 'agent_join', 'agent_stop'].map(key => (
-                <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <div key={key} className="stat-row">
                   <div>
-                    <div style={{ fontSize: 13, color: '#a1a1aa' }}>{key.replace('agent_', '').replace(/^./, c => c.toUpperCase())}</div>
-                    <div style={{ fontSize: 11, color: '#3f3f46' }}>+{todayCount(key)} today</div>
+                    <div className="stat-label">{key.replace('agent_', '').replace(/^./, c => c.toUpperCase())}</div>
+                    <div className="stat-sub">+{todayCount(key)} today</div>
                   </div>
-                  <div style={{ fontSize: 20, fontWeight: 700, color: '#fafafa', fontVariantNumeric: 'tabular-nums' }}>{fmt(t[key])}</div>
+                  <div className="stat-value">{fmt(t[key])}</div>
                 </div>
               ))}
             </div>
 
             {/* Errors */}
-            <div style={{ background: '#111118', border: '1px solid #1e1e2e', borderRadius: 12, padding: 24 }}>
-              <h3 style={{ fontSize: 14, fontWeight: 600, color: '#fafafa', margin: '0 0 16px' }}>Errors</h3>
+            <div className="panel">
+              <h3 className="panel-title-sm">Errors</h3>
               {Object.keys(data?.errors ?? {}).length === 0
-                ? <div style={{ fontSize: 13, color: '#3f3f46' }}>No errors recorded ✨</div>
+                ? <div className="empty">No errors ✨</div>
                 : Object.entries(data!.errors).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([type, count]) => (
-                  <div key={type} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <div style={{ fontSize: 12, color: '#ef4444', fontFamily: 'monospace' }}>{type}</div>
-                    <div style={{ fontSize: 12, color: '#71717a' }}>{count}</div>
+                  <div key={type} className="error-row">
+                    <div className="error-type">{type}</div>
+                    <div className="error-count">{count}</div>
                   </div>
                 ))
               }
@@ -218,29 +191,26 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* ── Timing Section ────────────────────────────────── */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 32 }}>
-
-          {/* Step Timing */}
-          <div style={{ background: '#111118', border: '1px solid #1e1e2e', borderRadius: 12, padding: 28 }}>
-            <h2 style={{ fontSize: 16, fontWeight: 600, margin: '0 0 4px', color: '#fafafa' }}>⏱ Step Timing</h2>
-            <p style={{ fontSize: 13, color: '#52525b', margin: '0 0 20px' }}>Average time between each step</p>
-
-            {(!timing?.stepAverages || timing.stepAverages.length === 0)
-              ? <div style={{ fontSize: 13, color: '#3f3f46', textAlign: 'center', padding: 32 }}>Waiting for session data...</div>
+        {/* Timing */}
+        <div className="timing-grid">
+          <div className="panel">
+            <h2 className="panel-title">⏱ Step Timing</h2>
+            <p className="panel-sub">Average time between each step</p>
+            {(!timing?.stepAverages?.length)
+              ? <div className="empty" style={{ padding: 32 }}>Waiting for session data...</div>
               : timing.stepAverages.map((s, i) => {
-                const barW = Math.min((s.avgSeconds / 120) * 100, 100) // 2 min = full bar
+                const barW = Math.min((s.avgSeconds / 120) * 100, 100)
                 const barColor = s.avgSeconds < 15 ? '#10b981' : s.avgSeconds < 60 ? '#f59e0b' : '#ef4444'
                 return (
-                  <div key={i} style={{ marginBottom: 10 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <div style={{ fontSize: 12, color: '#a1a1aa' }}>{s.step}</div>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: barColor, fontVariantNumeric: 'tabular-nums' }}>
-                        avg {fmtTime(s.avgSeconds)} · med {fmtTime(s.medianSeconds)} · n={s.count}
+                  <div key={i} style={{ marginBottom: 12 }}>
+                    <div className="timing-header">
+                      <div className="timing-label">{s.step}</div>
+                      <div className="timing-value" style={{ color: barColor }}>
+                        {fmtTime(s.avgSeconds)} avg
                       </div>
                     </div>
-                    <div style={{ height: 6, background: '#1a1a24', borderRadius: 3 }}>
-                      <div style={{ width: `${barW}%`, height: '100%', background: barColor, borderRadius: 3, transition: 'width 0.6s ease' }} />
+                    <div className="timing-bar-bg">
+                      <div className="timing-bar" style={{ width: `${barW}%`, background: barColor }} />
                     </div>
                   </div>
                 )
@@ -248,58 +218,128 @@ export default function Dashboard() {
             }
           </div>
 
-          {/* Recent Sessions */}
-          <div style={{ background: '#111118', border: '1px solid #1e1e2e', borderRadius: 12, padding: 28 }}>
-            <h2 style={{ fontSize: 16, fontWeight: 600, margin: '0 0 4px', color: '#fafafa' }}>👤 Recent Sessions</h2>
-            <p style={{ fontSize: 13, color: '#52525b', margin: '0 0 20px' }}>
-              {timing?.sessionsTracked ?? 0} sessions tracked
-            </p>
-
-            {(!timing?.recentSessions || timing.recentSessions.length === 0)
-              ? <div style={{ fontSize: 13, color: '#3f3f46', textAlign: 'center', padding: 32 }}>Waiting for sessions...</div>
-              : (
-                <div style={{ maxHeight: 320, overflowY: 'auto' }}>
-                  {timing.recentSessions.map((s, i) => {
-                    const completed = s.reachedStep === 'qs_step6'
-                    return (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #1a1a24' }}>
-                        <div>
-                          <div style={{ fontSize: 13, color: '#a1a1aa' }}>
-                            <span style={{ fontFamily: 'monospace', color: '#71717a' }}>{s.session_id}</span>
-                            {' → '}
-                            <span style={{ color: completed ? '#10b981' : '#f59e0b' }}>
-                              {s.reachedStep.replace('qs_', '').replace('step', 'S')}
-                            </span>
-                          </div>
-                          <div style={{ fontSize: 11, color: '#3f3f46' }}>{s.stepsCompleted} steps</div>
-                        </div>
-                        <div style={{ fontSize: 16, fontWeight: 700, color: s.totalSeconds < 120 ? '#10b981' : s.totalSeconds < 300 ? '#f59e0b' : '#ef4444', fontVariantNumeric: 'tabular-nums' }}>
-                          {fmtTime(s.totalSeconds)}
-                        </div>
+          <div className="panel">
+            <h2 className="panel-title">👤 Sessions</h2>
+            <p className="panel-sub">{timing?.sessionsTracked ?? 0} tracked</p>
+            {(!timing?.recentSessions?.length)
+              ? <div className="empty" style={{ padding: 32 }}>Waiting for sessions...</div>
+              : <div style={{ maxHeight: 320, overflowY: 'auto' }}>
+                {timing.recentSessions.map((s, i) => {
+                  const done = s.reachedStep === 'qs_step6'
+                  return (
+                    <div key={i} className="session-row">
+                      <div>
+                        <span className="session-id">{s.session_id}</span>
+                        <span className="session-arrow"> → </span>
+                        <span style={{ color: done ? '#10b981' : '#f59e0b' }}>
+                          {s.reachedStep.replace('qs_', '').replace('step', 'S')}
+                        </span>
+                        <div className="stat-sub">{s.stepsCompleted} steps</div>
                       </div>
-                    )
-                  })}
-                </div>
-              )
+                      <div className="session-time" style={{ color: s.totalSeconds < 120 ? '#10b981' : s.totalSeconds < 300 ? '#f59e0b' : '#ef4444' }}>
+                        {fmtTime(s.totalSeconds)}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
             }
           </div>
         </div>
 
-        {/* ── Footer ────────────────────────────────────────── */}
-        <div style={{ textAlign: 'center', padding: '24px 0 48px', fontSize: 12, color: '#3f3f46' }}>
-          <span>ConvoAI CLI — </span>
-          <a href="https://github.com/Coowoolf/convoai-cli" style={{ color: '#60a5fa', textDecoration: 'none' }}>GitHub</a>
-          <span> · </span>
-          <a href="https://www.npmjs.com/package/convoai" style={{ color: '#60a5fa', textDecoration: 'none' }}>npm</a>
-          <span> · </span>
-          <span>curl -fsSL https://convobench.org/install.sh | bash</span>
+        {/* Footer */}
+        <div className="footer">
+          ConvoAI CLI —{' '}
+          <a href="https://github.com/Coowoolf/convoai-cli">GitHub</a> ·{' '}
+          <a href="https://www.npmjs.com/package/convoai">npm</a> ·{' '}
+          <span className="footer-cmd">curl -fsSL https://convobench.org/install.sh | bash</span>
         </div>
       </div>
 
       <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.4; }
+        @keyframes pulse { 0%, 100% { opacity: 1 } 50% { opacity: 0.4 } }
+
+        .page { min-height: 100vh; background: linear-gradient(180deg, #08080c, #0c0c14); color: #e4e4e7; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 24px 16px; }
+
+        .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+        .header-left { display: flex; align-items: center; gap: 12px; }
+        .title { font-size: 24px; font-weight: 700; margin: 0; background: linear-gradient(135deg, #60a5fa, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .live-badge { padding: 3px 10px; border-radius: 20px; background: #10b98120; color: #10b981; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 5px; }
+        .live-dot { width: 6px; height: 6px; border-radius: 50%; background: #10b981; display: inline-block; animation: pulse 2s infinite; }
+        .updated { font-size: 12px; color: #52525b; }
+
+        .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+        .card { background: #111118; border: 1px solid #1e1e2e; border-radius: 12px; padding: 16px 20px; position: relative; overflow: hidden; }
+        .card-accent { position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+        .card-label { font-size: 10px; font-weight: 600; color: #71717a; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; }
+        .card-value { font-size: 24px; font-weight: 700; color: #fafafa; margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .card-sub { font-size: 11px; color: #52525b; }
+
+        .main-grid { display: grid; grid-template-columns: 1fr 320px; gap: 16px; margin-bottom: 24px; }
+        .sidebar { display: flex; flex-direction: column; gap: 16px; }
+
+        .panel { background: #111118; border: 1px solid #1e1e2e; border-radius: 12px; padding: 20px; }
+        .panel-title { font-size: 15px; font-weight: 600; margin: 0 0 4px; color: #fafafa; }
+        .panel-title-sm { font-size: 13px; font-weight: 600; color: #fafafa; margin: 0 0 14px; }
+        .panel-sub { font-size: 12px; color: #52525b; margin: 0 0 20px; }
+
+        .funnel-row { display: flex; align-items: center; margin-bottom: 10px; }
+        .funnel-icon { width: 24px; font-size: 14px; text-align: center; flex-shrink: 0; }
+        .funnel-label { width: 72px; font-size: 12px; color: #a1a1aa; flex-shrink: 0; }
+        .funnel-rate { width: 36px; font-size: 10px; text-align: right; flex-shrink: 0; }
+        .funnel-bar-bg { flex: 1; margin: 0 8px; height: 18px; background: #1a1a24; border-radius: 4px; overflow: hidden; }
+        .funnel-bar { height: 100%; border-radius: 4px; transition: width 0.6s ease; }
+        .funnel-count { width: 40px; text-align: right; font-size: 13px; font-weight: 600; color: #fafafa; font-variant-numeric: tabular-nums; }
+
+        .stat-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .stat-label { font-size: 12px; color: #a1a1aa; }
+        .stat-sub { font-size: 10px; color: #3f3f46; }
+        .stat-value { font-size: 18px; font-weight: 700; color: #fafafa; font-variant-numeric: tabular-nums; }
+
+        .empty { font-size: 12px; color: #3f3f46; text-align: center; }
+        .error-row { display: flex; justify-content: space-between; margin-bottom: 6px; }
+        .error-type { font-size: 11px; color: #ef4444; font-family: monospace; overflow: hidden; text-overflow: ellipsis; }
+        .error-count { font-size: 11px; color: #71717a; flex-shrink: 0; margin-left: 8px; }
+
+        .timing-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+        .timing-header { display: flex; justify-content: space-between; margin-bottom: 4px; flex-wrap: wrap; gap: 4px; }
+        .timing-label { font-size: 11px; color: #a1a1aa; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+        .timing-value { font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+        .timing-bar-bg { height: 5px; background: #1a1a24; border-radius: 3px; }
+        .timing-bar { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+
+        .session-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #1a1a24; }
+        .session-id { font-family: monospace; color: #71717a; font-size: 12px; }
+        .session-arrow { color: #3f3f46; font-size: 12px; }
+        .session-time { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+
+        .footer { text-align: center; padding: 20px 0 40px; font-size: 11px; color: #3f3f46; }
+        .footer a { color: #60a5fa; text-decoration: none; }
+        .footer-cmd { display: none; }
+
+        /* ── Mobile ──────────────────────────────── */
+        @media (max-width: 768px) {
+          .container { padding: 16px 12px; }
+          .title { font-size: 20px; }
+          .cards { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+          .card { padding: 12px 14px; }
+          .card-value { font-size: 20px; }
+          .main-grid { grid-template-columns: 1fr; }
+          .timing-grid { grid-template-columns: 1fr; }
+          .funnel-label { width: 60px; font-size: 11px; }
+          .funnel-rate { width: 30px; font-size: 9px; }
+          .funnel-icon { width: 20px; font-size: 12px; }
+          .funnel-count { width: 32px; font-size: 12px; }
+          .funnel-bar-bg { height: 14px; }
+        }
+
+        @media (max-width: 480px) {
+          .cards { grid-template-columns: 1fr 1fr; }
+          .funnel-rate { display: none; }
+          .funnel-label { width: 56px; font-size: 10px; }
+          .timing-label { font-size: 10px; }
+          .timing-value { font-size: 10px; }
         }
       `}</style>
     </div>
