@@ -2,8 +2,11 @@ import type { Metadata } from "next"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "ConvoAI Playground | 对话式 AI 引擎测试平台",
-  description: "声网对话式 AI 引擎体验测试平台 - 支持多语种、多 TTS、Prompt 编辑和电话绑定",
+  title: "ConvoAI CLI",
+  description: "Voice AI in your terminal — CLI for Agora ConvoAI Engine",
+  icons: {
+    icon: '/favicon.svg',
+  },
 }
 
 export default function RootLayout({
