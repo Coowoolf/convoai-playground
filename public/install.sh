@@ -170,10 +170,10 @@ main() {
   install_convoai
 
   printf "\n"
-  success "All set! Launching quickstart...\n"
+  success "All set! Launching quickstart..."
   printf "\n"
 
-  exec convoai quickstart
+  exec convoai quickstart </dev/tty
 }
 
 main
