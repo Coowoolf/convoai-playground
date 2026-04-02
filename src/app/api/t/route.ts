@@ -1,265 +1,205 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-// Valid event names from the CLI telemetry
+// ─── Valid Events ───────────────────────────────────────────────────────────
+
 const VALID_EVENTS = new Set([
-  'install',
-  'qs_start',
-  'qs_step1',
-  'qs_step2',
-  'qs_step3',
-  'qs_step4',
-  'qs_step5_agent',
-  'qs_step5_voice',
-  'qs_step6',
-  'agent_start',
-  'agent_join',
-  'agent_stop',
-  'error',
+  'install', 'qs_start', 'qs_step1', 'qs_step2', 'qs_step3', 'qs_step4',
+  'qs_step5_agent', 'qs_step5_voice', 'qs_step6',
+  'agent_start', 'agent_join', 'agent_stop', 'error',
 ])
 
-// Quickstart funnel step order (for timing calculations)
 const FUNNEL_STEPS = [
   'qs_start', 'qs_step1', 'qs_step2', 'qs_step3', 'qs_step4',
   'qs_step5_agent', 'qs_step5_voice', 'qs_step6',
 ]
 
-// ─── In-Memory Storage ──────────────────────────────────────────────────────
+const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+}
 
-const counters = new Map<string, number>()
-const dailyCounters = new Map<string, number>()
-const errorCounts = new Map<string, number>()
-const instanceStartTime = new Date().toISOString()
+// ─── Upstash Redis REST Client ──────────────────────────────────────────────
 
-// Per-session events for timing: session_id → [{event, ts}]
-interface SessionEvent { event: string; ts: number }
-const sessions = new Map<string, SessionEvent[]>()
-const MAX_SESSIONS = 500 // keep last N sessions to avoid memory bloat
+const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL ?? process.env.KV_REST_API_URL
+const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN
 
-// ─── Vercel KV (optional) ───────────────────────────────────────────────────
-
-let kv: {
-  hincrby: (key: string, field: string, increment: number) => Promise<number>
-  hgetall: (key: string) => Promise<Record<string, number> | null>
-  lpush: (key: string, ...values: string[]) => Promise<number>
-  lrange: (key: string, start: number, end: number) => Promise<string[]>
-} | null = null
-
-async function initKV() {
-  if (kv) return
+async function redis(command: string[]): Promise<unknown> {
+  if (!REDIS_URL || !REDIS_TOKEN) return null
   try {
-    if (process.env.KV_REST_API_URL) {
-      const mod = await (Function('return import("@vercel/kv")')() as Promise<{ kv: typeof kv }>)
-      kv = mod.kv
-    }
-  } catch {}
+    const res = await fetch(`${REDIS_URL}`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${REDIS_TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(command),
+    })
+    const json = await res.json()
+    return json.result
+  } catch { return null }
+}
+
+async function hincrby(key: string, field: string, n: number): Promise<void> {
+  await redis(['HINCRBY', key, field, String(n)])
+}
+
+async function hgetall(key: string): Promise<Record<string, number>> {
+  const result = await redis(['HGETALL', key]) as string[] | null
+  if (!result || !Array.isArray(result)) return {}
+  const map: Record<string, number> = {}
+  for (let i = 0; i < result.length; i += 2) {
+    map[result[i]] = Number(result[i + 1]) || 0
+  }
+  return map
+}
+
+async function lpush(key: string, value: string): Promise<void> {
+  await redis(['LPUSH', key, value])
+}
+
+async function ltrim(key: string, start: number, stop: number): Promise<void> {
+  await redis(['LTRIM', key, String(start), String(stop)])
+}
+
+async function lrange(key: string, start: number, stop: number): Promise<string[]> {
+  const result = await redis(['LRANGE', key, String(start), String(stop)]) as string[] | null
+  return result ?? []
 }
 
 function today(): string {
   return new Date().toISOString().split('T')[0]
 }
 
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-}
-
 // ─── OPTIONS ────────────────────────────────────────────────────────────────
 
 export async function OPTIONS() {
-  return new NextResponse(null, { status: 204, headers: CORS_HEADERS })
+  return new NextResponse(null, { status: 204, headers: CORS })
 }
 
-// ─── POST: receive telemetry events ─────────────────────────────────────────
+// ─── POST ───────────────────────────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
   try {
-    await initKV()
-
     const body = await request.json()
     const { event, session_id, error_type, ts } = body as {
-      event?: string
-      session_id?: string
-      ts?: number
-      region?: string
-      error_type?: string
-      version?: string
+      event?: string; session_id?: string; ts?: number;
+      region?: string; error_type?: string; version?: string
     }
 
     if (!event || !VALID_EVENTS.has(event)) {
-      return NextResponse.json(
-        { ok: false, error: 'Invalid or missing event' },
-        { status: 400, headers: CORS_HEADERS }
-      )
+      return NextResponse.json({ ok: false, error: 'Invalid event' }, { status: 400, headers: CORS })
     }
 
     const timestamp = ts ?? Date.now()
     const dateKey = `${event}:${today()}`
 
+    // Increment counters
+    await Promise.all([
+      hincrby('convoai:counts', event, 1),
+      hincrby('convoai:daily', dateKey, 1),
+      event === 'error' && error_type ? hincrby('convoai:errors', error_type, 1) : Promise.resolve(),
+    ])
+
     // Store session event for timing
     if (session_id) {
-      if (!sessions.has(session_id)) {
-        // Evict oldest session if at capacity
-        if (sessions.size >= MAX_SESSIONS) {
-          const oldest = sessions.keys().next().value
-          if (oldest) sessions.delete(oldest)
-        }
-        sessions.set(session_id, [])
-      }
-      sessions.get(session_id)!.push({ event, ts: timestamp })
-
-      // Also persist to KV if available
-      if (kv) {
-        try {
-          await kv.lpush('convoai:events', JSON.stringify({ event, session_id, ts: timestamp }))
-        } catch {}
-      }
+      await lpush('convoai:events', JSON.stringify({ event, session_id, ts: timestamp }))
+      await ltrim('convoai:events', 0, 4999) // keep last 5000 events
     }
 
-    // Increment counters
-    if (kv) {
-      await Promise.all([
-        kv.hincrby('convoai:counts', event, 1),
-        kv.hincrby('convoai:daily', dateKey, 1),
-        event === 'error' && error_type
-          ? kv.hincrby('convoai:errors', error_type, 1)
-          : Promise.resolve(),
-      ])
-    } else {
-      counters.set(event, (counters.get(event) || 0) + 1)
-      dailyCounters.set(dateKey, (dailyCounters.get(dateKey) || 0) + 1)
-      if (event === 'error' && error_type) {
-        errorCounts.set(error_type, (errorCounts.get(error_type) || 0) + 1)
-      }
-    }
-
-    return NextResponse.json({ ok: true }, { headers: CORS_HEADERS })
+    return NextResponse.json({ ok: true }, { headers: CORS })
   } catch (err) {
     console.error('[telemetry] POST error:', err)
-    return NextResponse.json(
-      { ok: false, error: 'Server error' },
-      { status: 500, headers: CORS_HEADERS }
-    )
+    return NextResponse.json({ ok: false }, { status: 500, headers: CORS })
   }
 }
 
 // ─── Timing Calculations ────────────────────────────────────────────────────
 
-interface StepTiming {
-  step: string
-  avgSeconds: number
-  medianSeconds: number
-  count: number
-}
+interface StepTiming { step: string; avgSeconds: number; medianSeconds: number; count: number }
+interface SessionSummary { session_id: string; totalSeconds: number; stepsCompleted: number; reachedStep: string }
 
-interface SessionSummary {
-  session_id: string
-  totalSeconds: number
-  stepsCompleted: number
-  reachedStep: string
-  stepTimings: { step: string; seconds: number }[]
-}
+function calculateTimings(events: { event: string; session_id: string; ts: number }[]): {
+  stepAverages: StepTiming[]; recentSessions: SessionSummary[]
+} {
+  // Group by session
+  const sessionMap = new Map<string, { event: string; ts: number }[]>()
+  for (const e of events) {
+    if (!sessionMap.has(e.session_id)) sessionMap.set(e.session_id, [])
+    sessionMap.get(e.session_id)!.push({ event: e.event, ts: e.ts })
+  }
 
-function calculateTimings(): { stepAverages: StepTiming[]; recentSessions: SessionSummary[] } {
   const stepDurations: Record<string, number[]> = {}
   const recentSessions: SessionSummary[] = []
 
-  for (const [sid, events] of sessions) {
-    if (events.length < 2) continue
-
-    // Sort by timestamp
-    const sorted = [...events].sort((a, b) => a.ts - b.ts)
-    const sessionStepTimings: { step: string; seconds: number }[] = []
+  for (const [sid, evts] of sessionMap) {
+    if (evts.length < 2) continue
+    const sorted = [...evts].sort((a, b) => a.ts - b.ts)
 
     for (let i = 1; i < sorted.length; i++) {
-      const prev = sorted[i - 1]
-      const curr = sorted[i]
-      const durSec = Math.round((curr.ts - prev.ts) / 1000)
-
-      // Only count reasonable durations (< 30 minutes)
-      if (durSec >= 0 && durSec < 1800) {
-        const stepKey = `${prev.event} → ${curr.event}`
-        if (!stepDurations[stepKey]) stepDurations[stepKey] = []
-        stepDurations[stepKey].push(durSec)
-        sessionStepTimings.push({ step: stepKey, seconds: durSec })
+      const dur = Math.round((sorted[i].ts - sorted[i - 1].ts) / 1000)
+      if (dur >= 0 && dur < 1800) {
+        const key = `${sorted[i - 1].event} → ${sorted[i].event}`
+        if (!stepDurations[key]) stepDurations[key] = []
+        stepDurations[key].push(dur)
       }
     }
 
     const totalSec = Math.round((sorted[sorted.length - 1].ts - sorted[0].ts) / 1000)
-    const lastStep = sorted[sorted.length - 1].event
-
     recentSessions.push({
       session_id: sid.slice(0, 4) + '****',
       totalSeconds: totalSec,
       stepsCompleted: sorted.length,
-      reachedStep: lastStep,
-      stepTimings: sessionStepTimings,
+      reachedStep: sorted[sorted.length - 1].event,
     })
   }
 
-  // Calculate averages per step transition
-  const stepAverages: StepTiming[] = []
-  for (const [step, durations] of Object.entries(stepDurations)) {
-    const sorted = [...durations].sort((a, b) => a - b)
-    const avg = Math.round(sorted.reduce((s, v) => s + v, 0) / sorted.length)
-    const median = sorted[Math.floor(sorted.length / 2)]
-    stepAverages.push({ step, avgSeconds: avg, medianSeconds: median, count: sorted.length })
-  }
-
-  // Sort step averages by funnel order
-  stepAverages.sort((a, b) => {
-    const aIdx = FUNNEL_STEPS.findIndex(s => a.step.startsWith(s))
-    const bIdx = FUNNEL_STEPS.findIndex(s => b.step.startsWith(s))
-    return aIdx - bIdx
+  const stepAverages: StepTiming[] = Object.entries(stepDurations).map(([step, durs]) => {
+    const s = [...durs].sort((a, b) => a - b)
+    return {
+      step,
+      avgSeconds: Math.round(s.reduce((a, b) => a + b, 0) / s.length),
+      medianSeconds: s[Math.floor(s.length / 2)],
+      count: s.length,
+    }
+  }).sort((a, b) => {
+    const ai = FUNNEL_STEPS.findIndex(s => a.step.startsWith(s))
+    const bi = FUNNEL_STEPS.findIndex(s => b.step.startsWith(s))
+    return ai - bi
   })
 
-  // Sort sessions newest first, limit to 20
   recentSessions.sort((a, b) => b.totalSeconds - a.totalSeconds)
 
   return { stepAverages, recentSessions: recentSessions.slice(0, 20) }
 }
 
-// ─── GET: read counters + timing for dashboard ──────────────────────────────
+// ─── GET ────────────────────────────────────────────────────────────────────
 
 export async function GET() {
   try {
-    await initKV()
+    const [total, daily, errors, rawEvents] = await Promise.all([
+      hgetall('convoai:counts'),
+      hgetall('convoai:daily'),
+      hgetall('convoai:errors'),
+      lrange('convoai:events', 0, 4999),
+    ])
 
-    let total: Record<string, number> = {}
-    let daily: Record<string, number> = {}
-    let errors: Record<string, number> = {}
-
-    if (kv) {
-      total = (await kv.hgetall('convoai:counts')) || {}
-      daily = (await kv.hgetall('convoai:daily')) || {}
-      errors = (await kv.hgetall('convoai:errors')) || {}
-    } else {
-      for (const [k, v] of counters) total[k] = v
-      for (const [k, v] of dailyCounters) daily[k] = v
-      for (const [k, v] of errorCounts) errors[k] = v
+    // Parse events for timing
+    const events: { event: string; session_id: string; ts: number }[] = []
+    for (const raw of rawEvents) {
+      try { events.push(JSON.parse(raw)) } catch { /* skip */ }
     }
 
-    const { stepAverages, recentSessions } = calculateTimings()
+    const { stepAverages, recentSessions } = calculateTimings(events)
 
-    return NextResponse.json(
-      {
-        total,
-        daily,
-        errors,
-        timing: {
-          stepAverages,
-          recentSessions,
-          sessionsTracked: sessions.size,
-        },
-        since: instanceStartTime,
-      },
-      { headers: CORS_HEADERS }
-    )
+    return NextResponse.json({
+      total, daily, errors,
+      timing: { stepAverages, recentSessions, sessionsTracked: new Set(events.map(e => e.session_id)).size },
+      since: 'persistent',
+    }, { headers: CORS })
   } catch (err) {
     console.error('[telemetry] GET error:', err)
-    return NextResponse.json(
-      { total: {}, daily: {}, errors: {}, timing: { stepAverages: [], recentSessions: [], sessionsTracked: 0 }, since: instanceStartTime },
-      { headers: CORS_HEADERS }
-    )
+    return NextResponse.json({
+      total: {}, daily: {}, errors: {},
+      timing: { stepAverages: [], recentSessions: [], sessionsTracked: 0 },
+      since: 'error',
+    }, { headers: CORS })
   }
 }
