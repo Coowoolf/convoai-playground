@@ -28,15 +28,17 @@ fatal()   { error "$@"; exit 1; }
 # ── Banner ───────────────────────────────────────────────────
 
 banner() {
+  local P="\033[38;2;120;106;244m"
+  local B="\033[38;2;91;142;255m"
+  local W="\033[38;2;200;200;255m"
   printf "\n"
-  printf "${CYAN}  ─────────────────────────────────────────${RESET}\n"
-  printf "\n"
-  printf "${BOLD}${CYAN}   ⚡🐦  C O N V O A I${RESET}\n"
-  printf "\n"
-  printf "   Works everywhere. Installs everything.\n"
-  printf "${DIM}   Powered by Agora ConvoAI Engine${RESET}\n"
-  printf "\n"
-  printf "${CYAN}  ─────────────────────────────────────────${RESET}\n"
+  printf "  ${P}   ▗▄▄▄▄▄▄▄▄▄▄▄▄▄▖${RESET}\n"
+  printf "  ${P}   ▐${B}              ${P}▌${RESET}\n"
+  printf "  ${P}   ▐${B}  ${W}██${B}    ${W}██${B}   ${P}▌${RESET}    ${BOLD}${P}ConvoAI Installer${RESET}\n"
+  printf "  ${P}   ▐${B}    ${W}▀▀▀▀${B}    ${P}▌${RESET}    Works everywhere. Installs everything.\n"
+  printf "  ${P}   ▐${B}              ${P}▌${RESET}    ${DIM}Powered by Agora ⚡🐦${RESET}\n"
+  printf "  ${P}   ▝▀▀▀▀▀▀▀█▀▀▀▀▘${RESET}\n"
+  printf "  ${P}            ▀▚${RESET}\n"
   printf "\n"
 }
 
